@@ -1,3 +1,5 @@
+import React from 'react';
+import Game from './pages/Game.jsx';
 import logo from './logo.svg';
 import './App.css';
 
@@ -18,8 +20,10 @@ function App() {
           Learn React
         </a>
       </header>
+      <Game currentLevel={1} />
     </div>
   );
 }
 
 export default App;
+
