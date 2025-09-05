@@ -23,7 +23,6 @@ This project is an educational drawing game that parses simple English commands 
 
 1. Start the dev server:
 ```powershell
-cd "D:\Academics (D)\SEM-5\Projects\Formal_Language_Automata\FLA"
 npm start
 ```
 
