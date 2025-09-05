@@ -1,70 +1,51 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Grammar Drawing App (FLA)
 
-## Available Scripts
+This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. It's built with React and uses a small FSM (finite state machine) to validate commands and Firebase Firestore to persist user progress.
 
-In the project directory, you can run:
+## Recent additions
 
-### `npm start`
+- Level progression (unlock vocabulary by level)
+- Scoreboard, streaks, and badges
+- Command history (last 10 commands persisted per user)
+- Rule engine that analyzes commands and provides context-aware hints and suggestions
+- Unified `FeedbackBox` UI to surface analyzer output
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Important files
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- `src/fsm/fsmEngine.js` — FSM implementation that tokenizes and validates commands. Returns `parsedCommand`, `errors`, `suggestions`, and `canDraw`.
+- `src/fsm/grammar.js` — Vocabulary lists and `LEVEL_VOCABULARY`, `COMMON_MISTAKES` data.
+- `src/fsm/ruleEngine.js` — New: enriches FSM results with contextual hints (common mistake corrections, level hints, similar-word suggestions, next-step tips).
+- `src/components/FeedbackBox.jsx` — New: feedback UI component used across the game.
+- `src/pages/Game.jsx` — The main game page; integrates FSM, rule engine, scoring, level tracker, scoreboard, badges, and command history.
 
-### `npm test`
+## Quick local test flow
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. Start the dev server:
+```powershell
+cd "D:\Academics (D)\SEM-5\Projects\Formal_Language_Automata\FLA"
+npm start
+```
 
-### `npm run build`
+2. Open http://localhost:3000 in your browser.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+3. Test scenarios:
+	- Valid command: `draw a red circle` — should draw the shape and show success feedback.
+	- Missing article: `draw circle` — should appear as a common-mistake and suggest `draw a circle`.
+	- Higher-level token: while on level 1, try `triangle` (introduced at later levels) — feedback should tell which level unlocks it.
+	- Malformed commands: expect FSM error messages and rule-engine suggestions.
+	- Check Command History: the right panel shows last 10 commands with accepted/rejected and parsed results.
+	- Level progression: after 5 successful commands (default), LevelTracker should allow leveling up and unlocking new vocab.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## FSM parsing status
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- The FSM is implemented in `src/fsm/fsmEngine.js` and is actively used by the app. It categorizes tokens via `categorizeWord` and enforces transitions defined in `STATE_TRANSITIONS`.
+- The rule engine (`src/fsm/ruleEngine.js`) is layered on top of the FSM to provide user-friendly hints.
+- Current status: FSM parsing is implemented and wired into the app. The rule engine provides additional guidance. If you see commands being wrongly rejected, check that `src/fsm/grammar.js` vocabulary matches expected tokens (singular token names are mapped via CATEGORY_NAME_MAP).
 
-### `npm run eject`
+## Notes & next steps
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- I recommend adding unit tests for `validateCommand` and `analyzeCommand` to lock behavior down.
+- Optional: add fuzzy spelling correction for better typo handling.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+If you'd like, I can add tests or fuzzy matching next.
