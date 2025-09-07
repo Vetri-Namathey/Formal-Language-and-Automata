@@ -6,7 +6,9 @@ const CommandInput = ({
   onStartListening, 
   onStopListening,
   placeholder = "Type your command (e.g., 'Draw a red circle')",
-  disabled = false 
+  disabled = false,
+  // optional prop: speechText will populate the input when provided
+  speechText = ''
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -54,6 +56,13 @@ const CommandInput = ({
       inputRef.current.focus();
     }
   }, [disabled]);
+
+  // If parent passes speechText (from speech recognition), populate the input
+  useEffect(() => {
+    if (speechText && speechText.trim().length > 0) {
+      setInputValue(speechText);
+    }
+  }, [speechText]);
   
   return (
     <div className="command-input-container bg-white border-2 border-gray-300 rounded-lg shadow-lg">

@@ -87,6 +87,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
   // Speech recognition setup
   const [recognition, setRecognition] = useState(null);
+  const [speechText, setSpeechText] = useState('');
 
   // Initialize speech recognition
   useEffect(() => {
@@ -100,7 +101,14 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       
       recognitionInstance.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        handleCommandSubmit(transcript);
+        // populate the input with the recognized text so user can see/edit
+        setSpeechText(transcript);
+        // optionally auto-submit after a short delay to allow UI to update
+        setTimeout(() => {
+          handleCommandSubmit(transcript);
+          // clear speech text after submission
+          setSpeechText('');
+        }, 350);
       };
       
       recognitionInstance.onerror = (event) => {
@@ -567,6 +575,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
             onStartListening={handleStartListening}
             onStopListening={handleStopListening}
             placeholder={`Level ${currentLevel}: Type your drawing command...`}
+            speechText={speechText}
           />
           
           {/* Feedback Box (powered by ruleEngine) */}
