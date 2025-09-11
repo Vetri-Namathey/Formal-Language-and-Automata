@@ -34,7 +34,8 @@ export const LEVEL_VOCABULARY = {
   1: { COMMANDS: ['draw', 'make'], ARTICLES: ['a'], COLORS: ['red', 'blue', 'green', 'yellow'], SHAPES: ['circle', 'square'], OBJECTS: [] },
   2: { COMMANDS: ['draw', 'make', 'create'], ARTICLES: ['a', 'the'], COLORS: ['red', 'blue', 'green', 'yellow', 'orange', 'purple'], SHAPES: ['circle', 'square', 'triangle', 'rectangle'], OBJECTS: [] },
   3: { COMMANDS: ['draw', 'make', 'create', 'paint'], ARTICLES: ['a', 'an', 'the'], COLORS: ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white'], SIZES: ['small', 'big', 'large'], SHAPES: ['circle', 'square', 'triangle', 'rectangle', 'line'], OBJECTS: ['house', 'tree', 'star'] },
-  4: { ...GRAMMAR_CATEGORIES }
+  4: { COMMANDS: ['draw', 'make', 'create', 'paint', 'sketch', 'add'], ARTICLES: ['a', 'an', 'the'], COLORS: ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'black', 'white', 'gray', 'grey', 'brown', 'cyan', 'magenta'], SIZES: ['small', 'tiny', 'medium', 'big', 'large', 'huge'], SHAPES: ['circle', 'square', 'triangle', 'rectangle', 'line', 'oval', 'diamond'], OBJECTS: ['house', 'tree', 'star', 'car', 'heart', 'flower', 'sun', 'moon'] },
+  5: { ...GRAMMAR_CATEGORIES }
 };
 
 export const COMMON_MISTAKES = {

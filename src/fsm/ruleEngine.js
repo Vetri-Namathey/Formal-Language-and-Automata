@@ -11,20 +11,55 @@ const findWordLevel = (word) => {
   return null;
 };
 
-// Find a few similar words from level vocab (startsWith or includes)
+// Levenshtein distance (small & fast for short vocab lists)
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[a.length][b.length];
+};
+
+// Find a few similar words from level vocab (prefix/contains OR close edit distance), but only for SHAPES/OBJECTS
 const suggestSimilarWords = (word, level = 1, limit = 3) => {
   const w = (word || '').toLowerCase();
   const vocab = getLevelVocabulary(level);
-  const pool = [];
-  for (const list of Object.values(vocab)) {
-    if (!Array.isArray(list)) continue;
+  const scored = [];
+  const prefix = w.slice(0, Math.max(1, Math.min(3, w.length)));
+  // Only consider SHAPES and OBJECTS for type suggestions
+  const candidateLists = [vocab.SHAPES || [], vocab.OBJECTS || []];
+  for (const list of candidateLists) {
     for (const item of list) {
       const it = item.toLowerCase();
       if (it === w) continue;
-      if (it.startsWith(w) || it.includes(w.slice(0, Math.max(1, Math.min(3, w.length))))) pool.push(item);
+      // prefix/substring heuristic OR edit distance <=2
+      if (it.startsWith(prefix) || it.includes(prefix) || levenshtein(w, it) <= 2) {
+        const distance = levenshtein(w, it);
+        scored.push({ word: item, distance });
+      }
     }
   }
-  return Array.from(new Set(pool)).slice(0, limit);
+  // sort by distance then alpha
+  scored.sort((a, b) => a.distance - b.distance || a.word.localeCompare(b.word));
+  return Array.from(new Set(scored.map(s => s.word))).slice(0, limit);
+};
+
+// Pick the single closest candidate (used to reconstruct corrected command)
+const getClosestWord = (word, level = 1) => {
+  const candidates = suggestSimilarWords(word, level, 5);
+  return candidates.length ? candidates[0] : null;
 };
 
 // Main analyzer
@@ -42,7 +77,7 @@ export const analyzeCommand = (commandText = '', currentLevel = 1, fsmResult = {
   };
 
   // 1) Common mistake quick-fix lookup
-  if (COMMON_MISTAKES[lc]) {
+  if (COMMON_MISTAKES[lc] && COMMON_MISTAKES[lc] !== lc) {
     feedback.type = 'warning';
     feedback.message = `Did you mean: "${COMMON_MISTAKES[lc]}"?`;
     feedback.suggestions.push(COMMON_MISTAKES[lc]);
@@ -80,6 +115,7 @@ export const analyzeCommand = (commandText = '', currentLevel = 1, fsmResult = {
 
     // If unknown tokens present, locate which and give level hints
     const unknowns = tokens.filter(t => categorizeWord(t) === 'UNKNOWN');
+    const replacementSuggestions = [];
     if (unknowns.length) {
       for (const u of unknowns) {
         const lvl = findWordLevel(u);
@@ -87,8 +123,28 @@ export const analyzeCommand = (commandText = '', currentLevel = 1, fsmResult = {
           feedback.suggestions.push(`"${u}" is introduced in level ${lvl}. Try shapes/colors available in level ${currentLevel}.`);
         } else {
           const sim = suggestSimilarWords(u, currentLevel);
-          if (sim.length) feedback.suggestions.push(`Did you mean ${sim.slice(0,3).join(' or ')}?`);
+            if (sim.length) {
+              feedback.suggestions.push(`Did you mean ${sim.slice(0,3).join(' or ')}?`);
+              const closest = sim[0];
+              if (closest) replacementSuggestions.push({ original: u, replacement: closest });
+            } else {
+              // Try a closest single candidate anyway
+              const closest = getClosestWord(u, currentLevel);
+              if (closest) replacementSuggestions.push({ original: u, replacement: closest });
+            }
         }
+      }
+    }
+
+    // Reconstruct a corrected command if we have viable replacements
+    if (replacementSuggestions.length) {
+      let corrected = tokens.join(' ');
+      for (const r of replacementSuggestions) {
+        // replace only whole word occurrences (simple split/join to avoid partial replacements)
+        corrected = corrected.split(/\s+/).map(tok => tok === r.original ? r.replacement : tok).join(' ');
+      }
+      if (corrected !== lc) {
+        feedback.suggestions.unshift(`Did you mean: "${corrected}"?`);
       }
     }
 
@@ -110,6 +166,15 @@ export const analyzeCommand = (commandText = '', currentLevel = 1, fsmResult = {
     if (feedback.suggestions.length === 0) {
       feedback.suggestions.push('Try: "draw a red circle"', 'Try: "make a blue square"');
     }
+    // Remove any duplicate suggestions or suggestions identical to original command
+    const seen = new Set();
+    feedback.suggestions = feedback.suggestions.filter(s => {
+      const normalized = s.toLowerCase();
+      if (normalized.includes(lc)) return false; // avoid echoing original
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
 
     return feedback;
   }

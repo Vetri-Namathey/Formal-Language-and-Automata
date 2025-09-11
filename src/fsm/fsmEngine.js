@@ -284,13 +284,24 @@ export class FSMEngine {
     } else {
       this.parsedCommand.color = this.getColorHex(this.parsedCommand.color);
     }
-    
+
     if (!this.parsedCommand.size) {
       this.parsedCommand.size = 'medium';
     }
 
     if (!this.parsedCommand.action) {
       this.parsedCommand.action = 'draw';
+    }
+
+    // Only allow drawing if type is a valid shape/object for this level
+    const vocab = getLevelVocabulary(this.level);
+    const type = this.parsedCommand.type;
+    const validShapes = (vocab.SHAPES || []);
+    const validObjects = (vocab.OBJECTS || []);
+    if (type && !validShapes.includes(type) && !validObjects.includes(type)) {
+      this.addError(`"${type}" is not a valid shape or object for level ${this.level}`);
+      this.currentState = FSM_STATES.ERROR;
+      return;
     }
 
     // Add timestamp and ID

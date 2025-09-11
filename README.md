@@ -1,7 +1,7 @@
 
 # Grammar Drawing App (FLA)
 
-This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. It's built with React and uses a small FSM (finite state machine) to validate commands and Firebase Firestore to persist user progress.
+This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. The parsing is implemented in a Python FastAPI backend (FSM + grammar + rule engine), while the frontend is React. Firebase Firestore is used to persist user progress.
 
 ## Recent additions
 
@@ -13,20 +13,36 @@ This project is an educational drawing game that parses simple English commands 
 
 ## Important files
 
-- `src/fsm/fsmEngine.js` — FSM implementation that tokenizes and validates commands. Returns `parsedCommand`, `errors`, `suggestions`, and `canDraw`.
-- `src/fsm/grammar.js` — Vocabulary lists and `LEVEL_VOCABULARY`, `COMMON_MISTAKES` data.
-- `src/fsm/ruleEngine.js` — New: enriches FSM results with contextual hints (common mistake corrections, level hints, similar-word suggestions, next-step tips).
-- `src/components/FeedbackBox.jsx` — New: feedback UI component used across the game.
-- `src/pages/Game.jsx` — The main game page; integrates FSM, rule engine, scoring, level tracker, scoreboard, badges, and command history.
+Backend (Python):
+- `backend/app/grammar.py` — Vocabulary lists and `LEVEL_VOCABULARY`, `COMMON_MISTAKES`, and helpers.
+- `backend/app/fsm.py` — FSM implementation that tokenizes and validates commands. Returns `parsedCommand`, `errors`, `suggestions`, and `canDraw`.
+- `backend/app/rule_engine.py` — Analyzer: contextual hints (common mistake corrections, level hints, similar-word suggestions, next-step tips).
+- `backend/app/main.py` — FastAPI entrypoint. Endpoints: `POST /parse`, `POST /analyze`, `GET /vocab`.
+- `backend/requirements.txt` — Backend dependencies.
+
+Frontend (React):
+- Note: The old `src/fsm/` JS modules are deprecated and no longer used by the app.
+- `src/services/backendApi.js` — Client to call FastAPI endpoints.
+- `src/pages/Game.jsx` — Main page; calls backend for parsing/analyzing; handles scoring, level tracker, scoreboard, badges, history.
+- `src/components/FeedbackBox.jsx` — Feedback UI component.
 
 ## Quick local test flow
 
-1. Start the dev server:
+1. Start the backend (FastAPI):
+```powershell
+cd backend
+python -m venv .venv
+..\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+2. Start the frontend:
 ```powershell
 npm start
 ```
 
-2. Open http://localhost:3000 in your browser.
+3. Open http://localhost:3000 in your browser.
 
 3. Test scenarios:
 	- Valid command: `draw a red circle` — should draw the shape and show success feedback.
@@ -36,15 +52,15 @@ npm start
 	- Check Command History: the right panel shows last 10 commands with accepted/rejected and parsed results.
 	- Level progression: after 5 successful commands (default), LevelTracker should allow leveling up and unlocking new vocab.
 
-## FSM parsing status
+## Parsing architecture (Python)
 
-- The FSM is implemented in `src/fsm/fsmEngine.js` and is actively used by the app. It categorizes tokens via `categorizeWord` and enforces transitions defined in `STATE_TRANSITIONS`.
-- The rule engine (`src/fsm/ruleEngine.js`) is layered on top of the FSM to provide user-friendly hints.
-- Current status: FSM parsing is implemented and wired into the app. The rule engine provides additional guidance. If you see commands being wrongly rejected, check that `src/fsm/grammar.js` vocabulary matches expected tokens (singular token names are mapped via CATEGORY_NAME_MAP).
+- The FSM and rule engine run in the backend. `Game.jsx` sends the raw command and current level to FastAPI.
+- `grammar.get_level_vocabulary` is strict per-level (no merge with global), preventing out-of-level words.
+- `rule_engine` uses Levenshtein-based suggestions and level gating hints.
 
 ## Notes & next steps
 
-- I recommend adding unit tests for `validateCommand` and `analyzeCommand` to lock behavior down.
-- Optional: add fuzzy spelling correction for better typo handling.
+- I recommend adding unit tests for Python `validate_command` and `analyze_command` to lock behavior down.
+- Optional: add a UI health indicator (already included) to surface backend availability.
 
 If you'd like, I can add tests or fuzzy matching next.

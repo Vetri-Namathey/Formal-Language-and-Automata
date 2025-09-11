@@ -127,10 +127,21 @@ const CanvasArea = ({
         break;
         
       default:
-        // Default circle for unknown shapes
+        // Draw a labeled placeholder for unknown types
+        ctx.save();
+        ctx.strokeStyle = color || '#333';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = '#fffbe6';
         ctx.beginPath();
-        ctx.arc(x, y, baseSize / 2, 0, 2 * Math.PI);
+        ctx.rect(x - baseSize/2, y - baseSize/2, baseSize, baseSize);
         ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color || '#333';
+        ctx.font = `${Math.max(12, baseSize/3)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(type, x, y);
+        ctx.restore();
     }
   };
   

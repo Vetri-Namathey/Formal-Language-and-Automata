@@ -12,6 +12,7 @@ const CommandInput = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [lastMicClick, setLastMicClick] = useState(0);
   const inputRef = useRef(null);
   
   // Handle form submission
@@ -29,8 +30,16 @@ const CommandInput = ({
     setInputValue(e.target.value);
   };
   
-  // Handle microphone toggle
+  // Handle microphone toggle with debounce
   const handleMicToggle = () => {
+    const now = Date.now();
+    // Prevent rapid clicks (debounce 500ms)
+    if (now - lastMicClick < 500) {
+      console.log('Microphone click debounced');
+      return;
+    }
+    setLastMicClick(now);
+    
     if (isListening) {
       onStopListening && onStopListening();
     } else {

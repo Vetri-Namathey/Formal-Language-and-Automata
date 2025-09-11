@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import CanvasArea from '../components/CanvasArea.jsx';
 import CommandInput from '../components/CommandInput.jsx';
 import LevelTracker from '../components/LevelTracker.jsx';
-import { createFSM } from '../fsm/fsmEngine.js';
-import { categorizeWord, isWordValidForLevel, getLevelVocabulary } from '../fsm/grammar.js';
-import { analyzeCommand } from '../fsm/ruleEngine.js';
+// Backend integration: use Python FastAPI instead of local JS FSM/rule engine
+import { parseCommand, analyzeCommandAPI, getVocab } from '../services/backendApi.js';
 import FeedbackBox from '../components/FeedbackBox.jsx';
 
 import db from '../firebase.js';
@@ -16,7 +15,8 @@ import CommandHistory from '../components/CommandHistory.jsx';
 const Game = ({ onLevelComplete, onScoreUpdate }) => {
   // Game state
   const [currentLevel, setCurrentLevel] = useState(1);
-  const [fsm, setFsm] = useState(() => createFSM(currentLevel));
+  // Deprecated local FSM kept for fallback only
+  const [fsm, setFsm] = useState(null);
   const [drawCommands, setDrawCommands] = useState([]);
   const [feedback, setFeedback] = useState({
     type: 'info', // 'success', 'error', 'warning', 'info'
@@ -31,13 +31,15 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     shapesDrawn: 0
   });
   const [userId, setUserId] = useState(`user_${Date.now()}`); // Simple user ID for demo purposes
-  const [maxLevel, setMaxLevel] = useState(4);
+  const [maxLevel, setMaxLevel] = useState(5);
   const [requiredCommandsToLevelUp, setRequiredCommandsToLevelUp] = useState(5);
   // Scoreboard & badges
   const [streak, setStreak] = useState(0);
   const [badges, setBadges] = useState([]);
   const [shapesTried, setShapesTried] = useState([]); // list of unique shape names tried
   const [commandHistory, setCommandHistory] = useState([]); // latest first
+  const [levelVocab, setLevelVocab] = useState({});
+  const [backendOnline, setBackendOnline] = useState(true);
 
   // Function to initialize or update user data in Firestore
   const initializeOrUpdateUser = async (userIdToInitialize) => {
@@ -99,33 +101,58 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       recognitionInstance.interimResults = false;
       recognitionInstance.lang = 'en-US';
       
+      recognitionInstance.onstart = () => {
+        console.log('Speech recognition started');
+        setIsListening(true);
+      };
+      
       recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        // populate the input with the recognized text so user can see/edit
+        let transcript = event.results[0][0].transcript || '';
+        // Remove trailing sentence punctuation (., ?, !)
+        transcript = transcript.trim().replace(/[.?!]+$/,'');
+        // populate the input; user will manually press Submit
         setSpeechText(transcript);
-        // optionally auto-submit after a short delay to allow UI to update
-        setTimeout(() => {
-          handleCommandSubmit(transcript);
-          // clear speech text after submission
-          setSpeechText('');
-        }, 350);
+        console.log('Speech recognition result:', transcript);
       };
       
       recognitionInstance.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
+        
+        let errorMessage = 'Speech recognition failed. Please try again or use text input.';
+        if (event.error === 'not-allowed') {
+          errorMessage = 'Microphone access denied. Please allow microphone access and try again.';
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'No speech detected. Please try speaking again.';
+        } else if (event.error === 'aborted') {
+          errorMessage = 'Speech recognition was cancelled.';
+        }
+        
         setFeedback({
           type: 'error',
-          message: 'Speech recognition failed. Please try again or use text input.',
+          message: errorMessage,
           suggestions: []
         });
       };
       
       recognitionInstance.onend = () => {
+        console.log('Speech recognition ended');
         setIsListening(false);
       };
       
       setRecognition(recognitionInstance);
+      
+      // Cleanup function
+      return () => {
+        if (recognitionInstance) {
+          try {
+            recognitionInstance.stop();
+            recognitionInstance.abort();
+          } catch (error) {
+            console.log('Error during speech recognition cleanup:', error);
+          }
+        }
+      };
     }
   }, []);
 
@@ -175,7 +202,8 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
   // Update FSM when level changes
   useEffect(() => {
-    setFsm(createFSM(currentLevel));
+    // No-op for Python backend; left for potential fallback
+    setFsm(null);
     setFeedback({
       type: 'info',
       message: `Level ${currentLevel} started! Try drawing shapes with commands.`,
@@ -187,32 +215,56 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     // Remove the inner updateUserLevel function that used updateDoc!
   }, [currentLevel, userId, score, gameStats.successfulCommands]);
 
+  // Fetch level vocabulary from Python backend when level changes
+  useEffect(() => {
+    let cancelled = false;
+    const loadVocab = async () => {
+      try {
+        const v = await getVocab(currentLevel);
+        if (!cancelled) {
+          setLevelVocab(v || {});
+          setBackendOnline(true);
+        }
+      } catch (e) {
+        console.warn('Failed to load vocab from backend, using empty vocab:', e);
+        if (!cancelled) {
+          setLevelVocab({});
+          setBackendOnline(false);
+        }
+      }
+    };
+    loadVocab();
+    return () => { cancelled = true; };
+  }, [currentLevel]);
+
   // Handle command submission
-  const handleCommandSubmit = (commandText) => {
+  const handleCommandSubmit = async (commandText) => {
     console.log('[Game] submitted command:', commandText);
-    const text = (commandText || '').toString().trim();
+  const text = (commandText || '').toString().trim().replace(/[.?!]+$/,'');
     const tokens = text.toLowerCase().split(/\s+/).filter(Boolean);
     console.log('[Game] tokens:', tokens);
 
-    const categories = tokens.map(t => categorizeWord(t));
-    console.log('[Game] categories:', categories);
+  // Token category/validation is now handled by the Python backend
 
-    // show which tokens are not valid for current level
-    const invalidTokens = tokens.filter((t, i) => !isWordValidForLevel(t, currentLevel));
-    if (invalidTokens.length) {
-      console.warn('[Game] invalid tokens for level', currentLevel, ':', invalidTokens);
-    } else {
-      console.log('[Game] all tokens valid for level', currentLevel);
-    }
-
-    const result = fsm.processCommand(commandText);
-    // run rule engine analyzer to get context-aware feedback (capture analysis locally)
+    // Call Python backend for parse + analyze
+    let result = null;
     let analysis = null;
     try {
-      analysis = analyzeCommand(commandText, currentLevel, result);
+      result = await parseCommand(commandText, currentLevel);
+  setBackendOnline(true);
     } catch (e) {
-      console.error('Rule engine analysis error:', e);
+      console.error('Backend parse error, falling back to client:', e);
+      // Fallback: minimal invalid result
+      result = { isValid: false, canDraw: false, errors: ['Backend unavailable'], suggestions: [], parsedCommand: {} };
+  setBackendOnline(false);
+    }
+    try {
+      analysis = await analyzeCommandAPI(commandText, currentLevel);
+  setBackendOnline(true);
+    } catch (e) {
+      console.error('Backend analyze error:', e);
       analysis = null;
+  setBackendOnline(false);
     }
     
     // Update game stats
@@ -248,8 +300,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         setShapesTried(newShapes);
 
         // Check if all shapes for this level are tried
-        const levelVocab = getLevelVocabulary(currentLevel) || {};
-        const availableShapes = (levelVocab.SHAPES || levelVocab.SHAPE || []);
+  const availableShapes = (levelVocab?.SHAPES || levelVocab?.SHAPE || []);
         // normalize availableShapes to array of strings
         const avail = Array.isArray(availableShapes) ? availableShapes : [];
         const allTried = avail.length > 0 && avail.every(s => newShapes.includes(s));
@@ -411,9 +462,16 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       const levelUpBonus = 50;
       const newScore = score + levelUpBonus;
       
+      // Reset successful commands count for the new level
+      const resetStats = {
+        ...gameStats,
+        successfulCommands: 0 // Reset to 0 for the new level
+      };
+      
       // Update state
       setCurrentLevel(newLevel);
       setScore(newScore);
+      setGameStats(resetStats);
       
       setFeedback({
         type: 'success',
@@ -425,7 +483,19 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       });
       
       // Update in Firebase using our new function
-      await updateUserLevel(newLevel, newScore, gameStats.successfulCommands);
+      await updateUserLevel(newLevel, newScore, 0); // Pass 0 for reset successful commands
+      
+      // Also update the game stats in Firebase with reset count
+      try {
+        await updateDoc(doc(db, "users", userId), {
+          totalCommands: resetStats.totalCommands,
+          successfulCommands: 0, // Reset to 0
+          shapesDrawn: resetStats.shapesDrawn,
+          updatedAt: new Date()
+        });
+      } catch (err) {
+        console.error("Error updating reset stats:", err);
+      }
       
       // Notify parent about level completion if provided
       if (onLevelComplete) {
@@ -436,7 +506,22 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
   // Handle voice input
   const handleStartListening = () => {
-    if (recognition) {
+    if (!recognition) {
+      setFeedback({
+        type: 'warning',
+        message: 'Speech recognition not supported in this browser. Please use text input.',
+        suggestions: []
+      });
+      return;
+    }
+
+    // Check if already listening to prevent double start
+    if (isListening) {
+      console.log('Speech recognition already running');
+      return;
+    }
+
+    try {
       setIsListening(true);
       recognition.start();
       setFeedback({
@@ -444,18 +529,24 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         message: 'Listening... Speak your command now!',
         suggestions: []
       });
-    } else {
+    } catch (error) {
+      console.error('Failed to start speech recognition:', error);
+      setIsListening(false);
       setFeedback({
-        type: 'warning',
-        message: 'Speech recognition not supported in this browser. Please use text input.',
+        type: 'error',
+        message: 'Failed to start speech recognition. Please try again.',
         suggestions: []
       });
     }
   };
 
   const handleStopListening = () => {
-    if (recognition) {
-      recognition.stop();
+    if (recognition && isListening) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
     }
     setIsListening(false);
   };
@@ -508,6 +599,11 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="bg-white rounded-lg shadow-md p-4">
+          {!backendOnline && (
+            <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-800 text-sm">
+              Backend offline — parsing disabled. Start the FastAPI server (see backend/README.md).
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Grammar Drawing Game</h1>
@@ -555,6 +651,45 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
             </div>
           </div>
 
+          {/* Level Guide */}
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <h3 className="text-lg font-semibold mb-3">Level {currentLevel} Guide</h3>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="font-medium">Available Commands:</span> draw, make, create
+                {currentLevel >= 3 && ', paint'}
+                {currentLevel >= 4 && ', sketch, add'}
+              </div>
+              <div>
+                <span className="font-medium">Colors:</span> red, blue, green, yellow
+                {currentLevel >= 2 && ', orange, purple'}
+                {currentLevel >= 3 && ', pink, black, white'}
+                {currentLevel >= 4 && ', gray, brown, cyan, magenta'}
+                {currentLevel >= 5 && ', lime, navy, maroon, olive'}
+              </div>
+              <div>
+                <span className="font-medium">Shapes:</span> circle, square
+                {currentLevel >= 2 && ', triangle, rectangle'}
+                {currentLevel >= 3 && ', line'}
+                {currentLevel >= 4 && ', oval, diamond'}
+              </div>
+              {currentLevel >= 3 && (
+                <div>
+                  <span className="font-medium">Objects:</span> house, tree, star
+                  {currentLevel >= 4 && ', car, heart, flower, sun, moon'}
+                  {currentLevel >= 5 && ', cloud, mountain, boat, fish, bird'}
+                </div>
+              )}
+              {currentLevel >= 3 && (
+                <div>
+                  <span className="font-medium">Sizes:</span> small, big, large
+                  {currentLevel >= 4 && ', tiny, medium, huge'}
+                  {currentLevel >= 5 && ', giant'}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Level Tracker */}
           <LevelTracker 
             currentLevel={currentLevel}
@@ -586,79 +721,6 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
           {/* Command History */}
           <CommandHistory history={commandHistory} />
-
-          {/* Level Info */}
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <h3 className="text-lg font-semibold mb-3">Level {currentLevel} Guide</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-medium">Available Commands:</span> draw, make, create
-                {currentLevel >= 3 && ', paint'}
-                {currentLevel >= 4 && ', sketch, add'}
-              </div>
-              <div>
-                <span className="font-medium">Colors:</span> red, blue, green, yellow
-                {currentLevel >= 2 && ', orange, purple'}
-                {currentLevel >= 3 && ', pink, black, white'}
-                {currentLevel >= 4 && ', gray, brown, cyan, magenta'}
-              </div>
-              <div>
-                <span className="font-medium">Shapes:</span> circle, square
-                {currentLevel >= 2 && ', triangle, rectangle'}
-                {currentLevel >= 3 && ', line'}
-                {currentLevel >= 4 && ', oval, diamond'}
-              </div>
-              {currentLevel >= 3 && (
-                <div>
-                  <span className="font-medium">Objects:</span> house, tree, star
-                  {currentLevel >= 4 && ', car, heart, flower, sun, moon'}
-                </div>
-              )}
-              {currentLevel >= 3 && (
-                <div>
-                  <span className="font-medium">Sizes:</span> small, big, large
-                  {currentLevel >= 4 && ', tiny, medium, huge'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <h3 className="text-lg font-semibold mb-3">Quick Actions</h3>
-            <div className="space-y-2">
-              <button
-                onClick={handleClearCanvas}
-                className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-              >
-                Clear Canvas
-              </button>
-              <button
-                onClick={() => {
-                  const newScore = score + 5;
-                  setScore(newScore);
-                  setFeedback({
-                    type: 'success',
-                    message: 'Bonus points added!',
-                    suggestions: ['Keep drawing to earn more points!']
-                  });
-                  
-                  // Update score in Firebase
-                  updateDoc(doc(db, "users", userId), {
-                    score: newScore,
-                    updatedAt: new Date()
-                  }).catch(err => console.error("Error updating score:", err));
-                  
-                  if (onScoreUpdate) {
-                    onScoreUpdate(newScore);
-                  }
-                }}
-                className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-              >
-                Hint (+5 points)
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

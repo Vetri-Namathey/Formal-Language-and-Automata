@@ -21,3 +21,40 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Python (backend)
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+backend/.venv/
+
+# Local environment files
+.env
+.env.*
+!*.example
+backend/.env
+backend/.env.*
+
+# Editors/OS
+.vscode/
+.idea/
+Thumbs.db
