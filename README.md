@@ -1,5 +1,5 @@
 
-# Grammar Drawing App (FLA)
+#  Natural Language-Guided Sketching Through Modular Command Interpretation
 
 This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. The parsing is implemented in a Python FastAPI backend (FSM + grammar + rule engine), while the frontend is React. Firebase Firestore is used to persist user progress.
 
