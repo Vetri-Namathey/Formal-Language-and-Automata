@@ -1,6 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const FeedbackBox = ({ feedback }) => {
+const FeedbackBox = ({ feedback, animationTrigger }) => {
+  const [animationClass, setAnimationClass] = useState('');
+
+  useEffect(() => {
+    if (feedback) {
+      // Trigger animation based on feedback type
+      if (feedback.type === 'success') {
+        setAnimationClass('success-glow slide-in-bottom');
+      } else if (feedback.type === 'error') {
+        setAnimationClass('shake error-pulse');
+      } else {
+        setAnimationClass('fade-in-scale');
+      }
+      
+      // Clear animation after it completes
+      setTimeout(() => {
+        setAnimationClass('');
+      }, 1000);
+    }
+  }, [feedback]);
+
+  // Handle external animation trigger
+  useEffect(() => {
+    if (animationTrigger) {
+      if (animationTrigger === 'success' && feedback?.type === 'success') {
+        setAnimationClass('success-glow pulse-success');
+      } else if (animationTrigger === 'error' && feedback?.type === 'error') {
+        setAnimationClass('shake error-pulse');
+      }
+      
+      // Clear animation after it completes
+      setTimeout(() => {
+        setAnimationClass('');
+      }, 1000);
+    }
+  }, [animationTrigger, feedback]);
+
   if (!feedback) return null;
 
   const getColorClass = () => {
@@ -22,7 +58,7 @@ const FeedbackBox = ({ feedback }) => {
   };
 
   return (
-    <div className={`rounded-lg border-2 p-4 ${getColorClass()}`}>
+    <div className={`rounded-lg border-2 p-4 transition-all duration-300 ${getColorClass()} ${animationClass}`}>
       <div className="flex items-start space-x-3">
         <span className="text-2xl">{getIcon()}</span>
         <div className="flex-1">
@@ -34,7 +70,7 @@ const FeedbackBox = ({ feedback }) => {
               <p className="font-medium mb-2">Suggestions:</p>
               <ul className="list-disc list-inside space-y-1">
                 {feedback.suggestions.map((s, i) => (
-                  <li key={i} className="text-sm">{s}</li>
+                  <li key={i} className="text-sm stagger-1" style={{animationDelay: `${i * 0.1}s`}}>{s}</li>
                 ))}
               </ul>
             </div>

@@ -8,11 +8,13 @@ const CommandInput = ({
   placeholder = "Type your command (e.g., 'Draw a red circle')",
   disabled = false,
   // optional prop: speechText will populate the input when provided
-  speechText = ''
+  speechText = '',
+  feedbackAnimation = null
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [lastMicClick, setLastMicClick] = useState(0);
+  const [containerAnimationClass, setContainerAnimationClass] = useState('');
   const inputRef = useRef(null);
   
   // Handle form submission
@@ -72,9 +74,25 @@ const CommandInput = ({
       setInputValue(speechText);
     }
   }, [speechText]);
+
+  // Handle feedback animation
+  useEffect(() => {
+    if (feedbackAnimation) {
+      if (feedbackAnimation === 'success') {
+        setContainerAnimationClass('pulse-success');
+      } else if (feedbackAnimation === 'error') {
+        setContainerAnimationClass('error-pulse');
+      }
+      
+      // Clear animation after it completes
+      setTimeout(() => {
+        setContainerAnimationClass('');
+      }, 1000);
+    }
+  }, [feedbackAnimation]);
   
   return (
-    <div className="command-input-container bg-white border-2 border-gray-300 rounded-lg shadow-lg">
+    <div className={`command-input-container bg-white border-2 border-gray-300 rounded-lg shadow-lg ${containerAnimationClass}`}>
       <div className="p-3 bg-gray-50 border-b">
         <h3 className="text-lg font-semibold text-gray-700">Command Input</h3>
         <p className="text-sm text-gray-500 mt-1">
@@ -109,9 +127,9 @@ const CommandInput = ({
                 type="button"
                 onClick={handleMicToggle}
                 disabled={disabled}
-                className={`p-3 m-1 rounded-lg transition-all duration-200 disabled:cursor-not-allowed ${
+                className={`p-3 m-1 rounded-lg transition-all duration-300 disabled:cursor-not-allowed btn-hover ${
                   isListening
-                    ? 'bg-red-500 text-white animate-pulse hover:bg-red-600'
+                    ? 'bg-red-500 text-white listening-pulse hover:bg-red-600'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:bg-gray-100'
                 }`}
                 title={isListening ? 'Stop listening' : 'Start voice input'}
@@ -128,11 +146,16 @@ const CommandInput = ({
               </button>
             </div>
             
-            {/* Voice status indicator */}
+            {/* Voice status indicator with wave animation */}
             {isListening && (
-              <div className="absolute -bottom-6 left-0 flex items-center space-x-1 text-red-500 text-sm">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <span>Listening...</span>
+              <div className="absolute -bottom-8 left-0 flex items-center space-x-2 text-red-500 text-sm slide-in-bottom">
+                <div className="flex space-x-1">
+                  <div className="voice-wave"></div>
+                  <div className="voice-wave"></div>
+                  <div className="voice-wave"></div>
+                  <div className="voice-wave"></div>
+                </div>
+                <span className="animate-pulse">Listening for your command...</span>
               </div>
             )}
           </div>
@@ -146,7 +169,7 @@ const CommandInput = ({
             <button
               type="submit"
               disabled={disabled || !inputValue.trim()}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-300 font-medium btn-hover ripple-effect"
             >
               Submit
             </button>
@@ -168,7 +191,9 @@ const CommandInput = ({
                 type="button"
                 onClick={() => setInputValue(example)}
                 disabled={disabled}
-                className="px-2 py-1 text-xs bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+                className={`px-2 py-1 text-xs bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:cursor-not-allowed transition-all duration-200 btn-hover ${
+                  index % 2 === 0 ? 'stagger-1' : 'stagger-2'
+                }`}
               >
                 {example}
               </button>

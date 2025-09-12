@@ -1,4 +1,3 @@
-
 #  Natural Language-Guided Sketching Through Modular Command Interpretation
 
 This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. The parsing is implemented in a Python FastAPI backend (FSM + grammar + rule engine), while the frontend is React. Firebase Firestore is used to persist user progress.
@@ -62,5 +61,3 @@ npm start
 
 - I recommend adding unit tests for Python `validate_command` and `analyze_command` to lock behavior down.
 - Optional: add a UI health indicator (already included) to surface backend availability.
-
-If you'd like, I can add tests or fuzzy matching next.

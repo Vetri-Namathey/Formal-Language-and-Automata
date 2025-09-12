@@ -4,7 +4,8 @@ const CanvasArea = ({
   drawCommands = [], 
   canvasWidth = 600, 
   canvasHeight = 400,
-  onShapeDrawn 
+  onShapeDrawn,
+  glowEffect = ''
 }) => {
   const canvasRef = useRef(null);
   const [shapes, setShapes] = useState([]);
@@ -204,7 +205,7 @@ const CanvasArea = ({
           ref={canvasRef}
           width={canvasWidth}
           height={canvasHeight}
-          className="border border-gray-200 rounded"
+          className={`border border-gray-200 rounded ${glowEffect ? 'success-glow' : ''}`}
           style={{ maxWidth: '100%', height: 'auto' }}
         />
       </div>

@@ -5,6 +5,7 @@ import LevelTracker from '../components/LevelTracker.jsx';
 // Backend integration: use Python FastAPI instead of local JS FSM/rule engine
 import { parseCommand, analyzeCommandAPI, getVocab } from '../services/backendApi.js';
 import FeedbackBox from '../components/FeedbackBox.jsx';
+import LevelUpCelebration from '../components/LevelUpCelebration.jsx';
 
 import db from '../firebase.js';
 import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -40,6 +41,14 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   const [commandHistory, setCommandHistory] = useState([]); // latest first
   const [levelVocab, setLevelVocab] = useState({});
   const [backendOnline, setBackendOnline] = useState(true);
+  
+  // Celebration state
+  const [showLevelUpCelebration, setShowLevelUpCelebration] = useState(false);
+  const [celebrationLevel, setCelebrationLevel] = useState(1);
+  
+  // Command feedback animations
+  const [commandFeedbackAnimation, setCommandFeedbackAnimation] = useState('');
+  const [canvasGlowEffect, setCanvasGlowEffect] = useState('');
 
   // Function to initialize or update user data in Firestore
   const initializeOrUpdateUser = async (userIdToInitialize) => {
@@ -319,6 +328,16 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       const newScore = score + 10;
       setScore(newScore);
       
+      // Success visual effects
+      setCommandFeedbackAnimation('success-glow');
+      setCanvasGlowEffect('success-glow');
+      
+      // Clear success effects after animation
+      setTimeout(() => {
+        setCommandFeedbackAnimation('');
+        setCanvasGlowEffect('');
+      }, 1000);
+      
       const updatedStats = {
         ...newStats,
         shapesDrawn: newStats.shapesDrawn + 1
@@ -376,8 +395,16 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       
     } else {
       // Error - show feedback
-  // reset streak on failure
-  setStreak(0);
+      // reset streak on failure
+      setStreak(0);
+      
+      // Failure visual effects
+      setCommandFeedbackAnimation('shake error-pulse');
+      
+      // Clear failure effects after animation
+      setTimeout(() => {
+        setCommandFeedbackAnimation('');
+      }, 800);
 
       // Prefer analyzer feedback if it exists
       if (analysis && analysis.message) {
@@ -472,6 +499,10 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       setCurrentLevel(newLevel);
       setScore(newScore);
       setGameStats(resetStats);
+      
+      // Trigger level-up celebration
+      setCelebrationLevel(newLevel);
+      setShowLevelUpCelebration(true);
       
       setFeedback({
         type: 'success',
@@ -598,21 +629,23 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     <div className="game-container min-h-screen bg-gray-100 p-4">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
-        <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="bg-white rounded-lg shadow-md p-4 card-hover">
           {!backendOnline && (
-            <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-800 text-sm">
+            <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-800 text-sm slide-in-bottom">
               Backend offline — parsing disabled. Start the FastAPI server (see backend/README.md).
             </div>
           )}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Grammar Drawing Game</h1>
-              <p className="text-gray-600">Level {currentLevel} - Learn English through drawing!</p>
+              <h1 className="text-2xl font-bold text-gray-800 fade-in-scale">Grammar Drawing Game</h1>
+              <p className="text-gray-600 fade-in-scale stagger-1">Level {currentLevel} - Learn English through drawing!</p>
             </div>
             
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">Score: {score}</div>
-              <div className="text-sm text-gray-500">
+              <div className="text-2xl font-bold text-blue-600 transition-all duration-300 hover:scale-110 count-up">
+                Score: {score}
+              </div>
+              <div className="text-sm text-gray-500 fade-in-scale stagger-2">
                 Success Rate: {gameStats.totalCommands > 0 ? Math.round((gameStats.successfulCommands / gameStats.totalCommands) * 100) : 0}%
               </div>
             </div>
@@ -630,58 +663,59 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
             onShapeDrawn={handleShapeDrawn}
             canvasWidth={600}
             canvasHeight={400}
+            glowEffect={canvasGlowEffect}
           />
           
           {/* Game Stats */}
-          <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="bg-white rounded-lg shadow-md p-4 card-hover">
             <h3 className="text-lg font-semibold mb-3">Game Statistics</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-blue-600">{gameStats.shapesDrawn}</div>
+                <div className="text-2xl font-bold text-blue-600 transition-all duration-300">{gameStats.shapesDrawn}</div>
                 <div className="text-sm text-gray-600">Shapes Drawn</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{gameStats.successfulCommands}</div>
+                <div className="text-2xl font-bold text-green-600 transition-all duration-300">{gameStats.successfulCommands}</div>
                 <div className="text-sm text-gray-600">Successful Commands</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-orange-600">{gameStats.totalCommands}</div>
+                <div className="text-2xl font-bold text-orange-600 transition-all duration-300">{gameStats.totalCommands}</div>
                 <div className="text-sm text-gray-600">Total Attempts</div>
               </div>
             </div>
           </div>
 
           {/* Level Guide */}
-          <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="bg-white rounded-lg shadow-md p-4 card-hover">
             <h3 className="text-lg font-semibold mb-3">Level {currentLevel} Guide</h3>
             <div className="space-y-2 text-sm">
-              <div>
+              <div className="fade-in-scale stagger-1">
                 <span className="font-medium">Available Commands:</span> draw, make, create
                 {currentLevel >= 3 && ', paint'}
                 {currentLevel >= 4 && ', sketch, add'}
               </div>
-              <div>
+              <div className="fade-in-scale stagger-2">
                 <span className="font-medium">Colors:</span> red, blue, green, yellow
                 {currentLevel >= 2 && ', orange, purple'}
                 {currentLevel >= 3 && ', pink, black, white'}
                 {currentLevel >= 4 && ', gray, brown, cyan, magenta'}
                 {currentLevel >= 5 && ', lime, navy, maroon, olive'}
               </div>
-              <div>
+              <div className="fade-in-scale stagger-3">
                 <span className="font-medium">Shapes:</span> circle, square
                 {currentLevel >= 2 && ', triangle, rectangle'}
                 {currentLevel >= 3 && ', line'}
                 {currentLevel >= 4 && ', oval, diamond'}
               </div>
               {currentLevel >= 3 && (
-                <div>
+                <div className="fade-in-scale stagger-4">
                   <span className="font-medium">Objects:</span> house, tree, star
                   {currentLevel >= 4 && ', car, heart, flower, sun, moon'}
                   {currentLevel >= 5 && ', cloud, mountain, boat, fish, bird'}
                 </div>
               )}
               {currentLevel >= 3 && (
-                <div>
+                <div className="fade-in-scale stagger-5">
                   <span className="font-medium">Sizes:</span> small, big, large
                   {currentLevel >= 4 && ', tiny, medium, huge'}
                   {currentLevel >= 5 && ', giant'}
@@ -711,10 +745,11 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
             onStopListening={handleStopListening}
             placeholder={`Level ${currentLevel}: Type your drawing command...`}
             speechText={speechText}
+            feedbackAnimation={commandFeedbackAnimation}
           />
           
           {/* Feedback Box (powered by ruleEngine) */}
-          <FeedbackBox feedback={feedback} />
+          <FeedbackBox feedback={feedback} animationTrigger={commandFeedbackAnimation} />
 
           {/* Scoreboard */}
           <ScoreBoard score={score} streak={streak} badges={badges} />
@@ -723,6 +758,14 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
           <CommandHistory history={commandHistory} />
         </div>
       </div>
+      
+      {/* Level Up Celebration */}
+      {showLevelUpCelebration && (
+        <LevelUpCelebration 
+          level={celebrationLevel}
+          onComplete={() => setShowLevelUpCelebration(false)}
+        />
+      )}
     </div>
   );
 };
