@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const FeedbackBox = ({ feedback, animationTrigger }) => {
+  const { t } = useTranslation();
   const [animationClass, setAnimationClass] = useState('');
 
   useEffect(() => {
@@ -62,7 +64,7 @@ const FeedbackBox = ({ feedback, animationTrigger }) => {
       <div className="flex items-start space-x-3">
         <span className="text-2xl">{getIcon()}</span>
         <div className="flex-1">
-          <h3 className="font-semibold mb-2">Feedback</h3>
+          <h3 className="font-semibold mb-2">{t('feedback')}</h3>
           <p className="mb-3">{feedback.message}</p>
 
           {feedback.suggestions && feedback.suggestions.length > 0 && (

@@ -1,0 +1,14 @@
+{
+  "welcomeMessage": "Welcome! Try drawing a shape using voice or text commands.",
+  "level": "Level",
+  "selectLanguage": "Select Language",
+  "commandPlaceholder": "Level {{level}}: Type your drawing command...",
+  "drawingCanvas": "Drawing Canvas",
+  "clear": "Clear",
+  "shapesDrawn": "Shapes drawn: {{count}}",
+  "feedback": "Feedback",
+  "score": "Score",
+  "streak": "Streak",
+  "badges": "Badges",
+  "commandHistory": "Command History"
+}

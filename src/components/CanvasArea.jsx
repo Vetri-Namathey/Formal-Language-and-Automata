@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const CanvasArea = ({ 
   drawCommands = [], 
@@ -7,6 +8,7 @@ const CanvasArea = ({
   onShapeDrawn,
   glowEffect = ''
 }) => {
+  const { t } = useTranslation();
   const canvasRef = useRef(null);
   const [shapes, setShapes] = useState([]);
   
@@ -191,12 +193,12 @@ const CanvasArea = ({
   return (
     <div className="canvas-container bg-white border-2 border-gray-300 rounded-lg shadow-lg">
       <div className="flex justify-between items-center p-3 bg-gray-50 border-b">
-        <h3 className="text-lg font-semibold text-gray-700">Drawing Canvas</h3>
+        <h3 className="text-lg font-semibold text-gray-700">{t('drawingCanvas')}</h3>
         <button
           onClick={clearCanvas}
           className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
         >
-          Clear
+          {t('clear')}
         </button>
       </div>
       
@@ -212,7 +214,7 @@ const CanvasArea = ({
       
       <div className="px-4 pb-3">
         <p className="text-sm text-gray-500">
-          Shapes drawn: {shapes.length}
+          {t('shapesDrawn', { count: shapes.length })}
         </p>
       </div>
     </div>

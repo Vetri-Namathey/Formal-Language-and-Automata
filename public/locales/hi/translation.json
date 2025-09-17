@@ -1,0 +1,14 @@
+{
+  "welcomeMessage": "आपका स्वागत है! आवाज या पाठ आदेशों का उपयोग करके एक आकृति बनाने का प्रयास करें।",
+  "level": "स्तर",
+  "selectLanguage": "भाषा चुनें",
+  "commandPlaceholder": "स्तर {{level}}: अपना ड्राइंग कमांड टाइप करें...",
+  "drawingCanvas": "ड्राइंग कैनवास",
+  "clear": "साफ़ करें",
+  "shapesDrawn": "बनाई गई आकृतियाँ: {{count}}",
+  "feedback": "प्रतिक्रिया",
+  "score": "स्कोर",
+  "streak": "सिलसिला",
+  "badges": "बैज",
+  "commandHistory": "कमांड इतिहास"
+}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Badge from './Badge.jsx';
 
 const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
+  const { t } = useTranslation();
   const [previousScore, setPreviousScore] = useState(score);
   const [previousStreak, setPreviousStreak] = useState(streak);
   const [scoreAnimation, setScoreAnimation] = useState('');
@@ -67,7 +69,7 @@ const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 card-hover relative overflow-hidden">
-      <h3 className="text-lg font-semibold mb-2">Scoreboard</h3>
+      <h3 className="text-lg font-semibold mb-2">{t('scoreboard')}</h3>
       
       {/* Floating Score Animations */}
       {floatingScores.map((floatingScore) => (
@@ -89,7 +91,7 @@ const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
           <div className={`text-3xl font-bold text-blue-600 transition-all duration-300 ${scoreAnimation}`}>
             {score}
           </div>
-          <div className="text-sm text-gray-500">Score</div>
+          <div className="text-sm text-gray-500">{t('score')}</div>
         </div>
         
         <div className="relative">
@@ -100,13 +102,13 @@ const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
             {streak >= 10 ? 'Epic Streak!' : 
              streak >= 5 ? 'Great Streak!' : 
              streak >= 3 ? 'Good Streak!' : 
-             'Current Streak'}
+             t('streak')}
           </div>
         </div>
       </div>
 
       <div>
-        <h4 className="text-sm font-semibold mb-2">Badges</h4>
+        <h4 className="text-sm font-semibold mb-2">{t('badges')}</h4>
         <div className="space-y-2">
           {badges && badges.length > 0 ? (
             <div className="grid grid-cols-1 gap-2">

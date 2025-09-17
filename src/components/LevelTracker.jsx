@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const LevelTracker = ({ 
   currentLevel, 
@@ -7,6 +8,7 @@ const LevelTracker = ({
   requiredCommandsToLevelUp,
   onLevelUp 
 }) => {
+  const { t } = useTranslation();
   const [previousProgress, setPreviousProgress] = useState(0);
   const [animateProgress, setAnimateProgress] = useState(false);
 
@@ -29,10 +31,12 @@ const LevelTracker = ({
   }, [progressPercentage, previousProgress]);
 
   return (
-    <div className="level-tracker bg-white rounded-lg shadow-md p-4 card-hover">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">Level Progress</h3>
-        <div className="text-2xl font-bold text-indigo-600">Level {currentLevel}</div>
+    <div className="bg-white rounded-lg shadow-md p-4 card-hover">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold">{t('level')} {currentLevel}</h3>
+        <span className="text-sm text-gray-500">
+          {t('level')} {currentLevel} / {maxLevel}
+        </span>
       </div>
 
       {/* Progress bar */}
@@ -94,7 +98,7 @@ const LevelTracker = ({
                 ? 'bg-indigo-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
             } ${i + 1 === currentLevel ? 'ring-2 ring-indigo-300 ring-offset-2' : ''}`}
-            title={`Level ${i + 1}${i + 1 <= currentLevel ? ' (Unlocked)' : ' (Locked)'}`}
+            title={`${t('level')} ${i + 1}${i + 1 <= currentLevel ? ' (Unlocked)' : ' (Locked)'}`}
           >
             {i + 1}
           </div>

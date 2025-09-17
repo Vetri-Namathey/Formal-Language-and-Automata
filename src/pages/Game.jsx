@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import CanvasArea from '../components/CanvasArea.jsx';
 import CommandInput from '../components/CommandInput.jsx';
 import LevelTracker from '../components/LevelTracker.jsx';
 // Backend integration: use Python FastAPI instead of local JS FSM/rule engine
 import { parseCommand, analyzeCommandAPI, getVocab } from '../services/backendApi.js';
+import { translateToEnglish } from '../services/translationService.js';
 import FeedbackBox from '../components/FeedbackBox.jsx';
 import LevelUpCelebration from '../components/LevelUpCelebration.jsx';
 
@@ -14,6 +16,7 @@ import CommandHistory from '../components/CommandHistory.jsx';
 
 
 const Game = ({ onLevelComplete, onScoreUpdate }) => {
+  const { t, i18n } = useTranslation();
   // Game state
   const [currentLevel, setCurrentLevel] = useState(1);
   // Deprecated local FSM kept for fallback only
@@ -49,6 +52,13 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   // Command feedback animations
   const [commandFeedbackAnimation, setCommandFeedbackAnimation] = useState('');
   const [canvasGlowEffect, setCanvasGlowEffect] = useState('');
+
+  // Language state
+  const [language, setLanguage] = useState(i18n.language); // 'en', 'ta', 'hi', 'ml'
+
+  useEffect(() => {
+    i18n.changeLanguage(language);
+  }, [language, i18n]);
 
   // Function to initialize or update user data in Firestore
   const initializeOrUpdateUser = async (userIdToInitialize) => {
@@ -249,31 +259,36 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   // Handle command submission
   const handleCommandSubmit = async (commandText) => {
     console.log('[Game] submitted command:', commandText);
-  const text = (commandText || '').toString().trim().replace(/[.?!]+$/,'');
+
+    // Translate command if necessary
+    const translatedCommand = await translateToEnglish(commandText, language);
+    console.log(`[Game] Translated command: ${translatedCommand}`);
+
+    const text = (translatedCommand || '').toString().trim().replace(/[.?!]+$/,'');
     const tokens = text.toLowerCase().split(/\s+/).filter(Boolean);
     console.log('[Game] tokens:', tokens);
 
-  // Token category/validation is now handled by the Python backend
+    // Token category/validation is now handled by the Python backend
 
     // Call Python backend for parse + analyze
     let result = null;
     let analysis = null;
     try {
-      result = await parseCommand(commandText, currentLevel);
-  setBackendOnline(true);
+      result = await parseCommand(translatedCommand, currentLevel);
+      setBackendOnline(true);
     } catch (e) {
       console.error('Backend parse error, falling back to client:', e);
       // Fallback: minimal invalid result
       result = { isValid: false, canDraw: false, errors: ['Backend unavailable'], suggestions: [], parsedCommand: {} };
-  setBackendOnline(false);
+      setBackendOnline(false);
     }
     try {
-      analysis = await analyzeCommandAPI(commandText, currentLevel);
-  setBackendOnline(true);
+      analysis = await analyzeCommandAPI(translatedCommand, currentLevel);
+      setBackendOnline(true);
     } catch (e) {
       console.error('Backend analyze error:', e);
       analysis = null;
-  setBackendOnline(false);
+      setBackendOnline(false);
     }
     
     // Update game stats
@@ -737,13 +752,31 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         {/* Right Column - Input and Feedback */}
         <div className="space-y-4">
           
+          {/* Language Selector */}
+          <div className="language-selector-container bg-white p-3 rounded-lg shadow-md border border-gray-200">
+            <label htmlFor="language-select" className="block text-sm font-medium text-gray-700 mb-2">
+              {t('selectLanguage')}
+            </label>
+            <select
+              id="language-select"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="en">English</option>
+              <option value="ta">Tamil</option>
+              <option value="hi">Hindi</option>
+              <option value="ml">Malayalam</option>
+            </select>
+          </div>
+
           {/* Command Input */}
           <CommandInput 
             onCommandSubmit={handleCommandSubmit}
             isListening={isListening}
             onStartListening={handleStartListening}
             onStopListening={handleStopListening}
-            placeholder={`Level ${currentLevel}: Type your drawing command...`}
+            placeholder={t('commandPlaceholder', { level: currentLevel })}
             speechText={speechText}
             feedbackAnimation={commandFeedbackAnimation}
           />

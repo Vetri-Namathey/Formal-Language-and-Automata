@@ -1,9 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const CommandHistory = ({ history = [] }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 card-hover">
-      <h3 className="text-lg font-semibold mb-3">Command History</h3>
+      <h3 className="text-lg font-semibold mb-3">{t('commandHistory')}</h3>
       {history.length === 0 ? (
         <div className="text-sm text-gray-400">No commands yet.</div>
       ) : (
