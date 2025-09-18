@@ -1,0 +1,11 @@
+/* Celebration shimmer effect */
+.shimmer {
+	background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.9) 20%, transparent 40%) no-repeat;
+	background-size: 200% 100%;
+	animation: shimmer-move 2.2s linear infinite;
+}
+
+@keyframes shimmer-move {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}

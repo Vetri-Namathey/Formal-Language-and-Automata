@@ -10,5 +10,82 @@
   "score": "സ്കോർ",
   "streak": "സ്ട്രീക്ക്",
   "badges": "ബാഡ്ജുകൾ",
-  "commandHistory": "കമാൻഡ് ചരിത്രം"
+  "commandHistory": "കമാൻഡ് ചരിത്രം",
+  "banner": {
+    "backendOffline": "Backend offline — parsing disabled. Start the FastAPI server (see backend/README.md)."
+  },
+  "game": {
+    "title": "Grammar Drawing Game",
+    "subtitle": "Level {{level}} - Learn English through drawing!"
+  },
+  "stats": {
+    "title": "Game Statistics",
+    "shapesDrawn": "Shapes Drawn",
+    "successfulCommands": "Successful Commands",
+    "totalAttempts": "Total Attempts",
+    "successRate": "Success Rate"
+  },
+  "guide": {
+    "title": "Level {{level}} Guide",
+    "availableCommands": "Available Commands:",
+    "colors": "Colors:",
+    "shapes": "Shapes:",
+    "objects": "Objects:",
+    "sizes": "Sizes:"
+  },
+  "welcomeBack": "Welcome back! You are on level {{level}}.",
+  "tryDrawingMore": "Try drawing some shapes to continue!",
+  "loadProgressError": "Could not load your progress. Starting from level 1.",
+  "levelStart": "Level {{level}} started! Try drawing shapes with commands.",
+  "canvasCleared": "Canvas cleared! Start drawing new shapes.",
+  "levelUpCongrats": "Congratulations! You've advanced to Level {{level}}! (+{{bonus}} bonus points)",
+  "tryNewVocab": "Try the new vocabulary!",
+  "newShapesAvailable": "New shapes and colors are available!",
+  "parsedView": {
+    "title": "Parsed View",
+    "original": "Original",
+    "translated": "Translated",
+    "normalized": "Normalized",
+    "tokens": "Tokens",
+    "parsed": "Parsed Command",
+    "note": "We translate and normalize to match the game's grammar, then parse."
+  }
+  ,
+  "scoreboard": "Scoreboard",
+  "streakEpic": "Epic Streak!",
+  "streakGreat": "Great Streak!",
+  "streakGood": "Good Streak!",
+  "noBadges": "No badges yet. Earn badges by playing!",
+  "suggestions": "Suggestions:",
+  "commandInput": {
+    "title": "Command Input",
+    "subtitle": "Type or speak your drawing commands",
+    "micStart": "Start voice input",
+    "micStop": "Stop listening",
+    "listening": "Listening for your command...",
+    "pressEnterOrSubmit": "Press Enter or click Submit",
+    "submit": "Submit",
+    "examplesLabel": "Example commands:"
+  },
+  "exampleCommands": {
+    "drawRedCircle": "Draw a red circle",
+    "makeBlueSquare": "Make a blue square",
+    "createGreenTriangle": "Create a green triangle",
+    "drawBigYellowHouse": "Draw a big yellow house"
+  },
+  "levelTracker": {
+    "successfulCommandsLabel": "{{success}} / {{required}} successful commands",
+    "readyToLevelUp": "🚀 Ready to level up!",
+    "levelUpButton": "🎉 Level Up!",
+    "completeMoreCommands": "Complete {{remaining}} more commands",
+    "unlocked": "Unlocked",
+    "locked": "Locked"
+  },
+  "trainingComplete": {
+    "title": "പരിശീലനം പൂർത്തിയായി",
+    "body": "അടിസ്ഥാനങ്ങൾ നിങ്ങൾ പഠിച്ചു! ലെവൽ 5 പൂർത്തിയാക്കിയതിന് അഭിനന്ദനങ്ങൾ. നൈപുണ്യം നേടാൻ എല്ലാ കമാൻഡുകളും പരിശീലിക്കുക.",
+    "note": "സൂചന: വൈവിധ്യത്തിനായി നിറങ്ങൾ, വലുപ്പങ്ങൾ, രൂപങ്ങൾ എന്നിവ ചേർത്ത് പരീക്ഷിക്കുക.",
+    "cta": "വരച്ചുകൊണ്ടിരിക്കുക",
+    "toast": "പരിശീലനം പൂർത്തിയായി — നിങ്ങൾ അടിസ്ഥാനങ്ങൾ പഠിച്ചു!"
+  }
 }

@@ -4,3 +4,5 @@
 
 /* Import our custom animations */
 @import './styles/animations.css';
+/* Celebration styles (shimmer) */
+@import './styles/main.css';

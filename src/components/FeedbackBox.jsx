@@ -65,14 +65,20 @@ const FeedbackBox = ({ feedback, animationTrigger }) => {
         <span className="text-2xl">{getIcon()}</span>
         <div className="flex-1">
           <h3 className="font-semibold mb-2">{t('feedback')}</h3>
-          <p className="mb-3">{feedback.message}</p>
+          <p className="mb-3">{
+            feedback.messageKey
+              ? t(feedback.messageKey, feedback.params || {})
+              : feedback.message
+          }</p>
 
           {feedback.suggestions && feedback.suggestions.length > 0 && (
             <div>
-              <p className="font-medium mb-2">Suggestions:</p>
+              <p className="font-medium mb-2">{t('suggestions')}</p>
               <ul className="list-disc list-inside space-y-1">
                 {feedback.suggestions.map((s, i) => (
-                  <li key={i} className="text-sm stagger-1" style={{animationDelay: `${i * 0.1}s`}}>{s}</li>
+                  <li key={i} className="text-sm stagger-1" style={{animationDelay: `${i * 0.1}s`}}>
+                    {typeof s === 'string' ? s : (s.key ? t(s.key, s.params || {}) : '')}
+                  </li>
                 ))}
               </ul>
             </div>

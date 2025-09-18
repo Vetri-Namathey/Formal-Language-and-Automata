@@ -10,6 +10,7 @@
 
 # production
 /build
+dist/
 
 # misc
 .DS_Store
@@ -17,6 +18,8 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env
+.env.*
 
 npm-debug.log*
 yarn-debug.log*
@@ -48,8 +51,6 @@ ENV/
 backend/.venv/
 
 # Local environment files
-.env
-.env.*
 !*.example
 backend/.env
 backend/.env.*
@@ -58,3 +59,5 @@ backend/.env.*
 .vscode/
 .idea/
 Thumbs.db
+*.log
+logs/

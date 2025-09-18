@@ -20,7 +20,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Configure frontend to call http://localhost:8000 by default. Set BACKEND_URL to override.
+Frontend calls http://localhost:8000 by default. Override with `REACT_APP_BACKEND_URL`.
 
 Frontend wiring:
 - New file `src/services/backendApi.js` calls the FastAPI endpoints.

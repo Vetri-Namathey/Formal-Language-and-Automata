@@ -11,6 +11,94 @@ const CanvasArea = ({
   const { t } = useTranslation();
   const canvasRef = useRef(null);
   const [shapes, setShapes] = useState([]);
+
+  // Compute base size from semantic size
+  const getBaseSize = (size) => {
+    const sizeMultiplier = {
+      small: 0.7,
+      medium: 1,
+      large: 1.5,
+      big: 1.8
+    }[size] || 1;
+    return 40 * sizeMultiplier;
+  };
+
+  // Approximate shape width/height for collision checks
+  const getShapeDimensions = (type, baseSize) => {
+    switch (type) {
+      case 'circle':
+        return { w: baseSize, h: baseSize };
+      case 'square':
+        return { w: baseSize, h: baseSize };
+      case 'rectangle':
+        return { w: baseSize * 1.5, h: baseSize };
+      case 'triangle':
+        return { w: baseSize, h: baseSize };
+      case 'line':
+        return { w: baseSize * 2, h: Math.max(6, baseSize * 0.15) };
+      case 'house':
+        return { w: baseSize, h: baseSize };
+      case 'tree':
+        return { w: baseSize, h: baseSize };
+      default:
+        return { w: baseSize, h: baseSize };
+    }
+  };
+
+  // Compute bounding box centered at (x,y)
+  const computeBBox = (type, size, x, y, padding = 8) => {
+    const base = getBaseSize(size);
+    const { w, h } = getShapeDimensions(type, base);
+    return {
+      x1: x - w / 2 - padding,
+      y1: y - h / 2 - padding,
+      x2: x + w / 2 + padding,
+      y2: y + h / 2 + padding,
+      w,
+      h
+    };
+  };
+
+  const boxesOverlap = (a, b) => {
+    return !(a.x2 < b.x1 || a.x1 > b.x2 || a.y2 < b.y1 || a.y1 > b.y2);
+  };
+
+  // Try to find a non-overlapping position using a grid scan
+  const findNonOverlappingPosition = (type, size) => {
+    const step = 50; // align with grid for aesthetics
+    const margin = 12;
+    const base = getBaseSize(size);
+    const { w, h } = getShapeDimensions(type, base);
+
+    // Precompute existing boxes
+    const existingBoxes = shapes.map(s => computeBBox(s.type, s.size || 'medium', s.x, s.y, margin));
+
+    // Randomize start offsets so shapes don't always pile at same corner
+    const xStart = Math.floor(Math.random() * step);
+    const yStart = Math.floor(Math.random() * step);
+
+    for (let y = yStart + Math.ceil(h / 2) + margin; y <= canvasHeight - Math.ceil(h / 2) - margin; y += step) {
+      for (let x = xStart + Math.ceil(w / 2) + margin; x <= canvasWidth - Math.ceil(w / 2) - margin; x += step) {
+        const candidate = computeBBox(type, size, x, y, margin);
+        const collides = existingBoxes.some(box => boxesOverlap(candidate, box));
+        if (!collides) {
+          return { x, y };
+        }
+      }
+    }
+
+    // Fallback: try a few random positions
+    for (let i = 0; i < 40; i++) {
+      const rx = Math.random() * (canvasWidth - w - 2 * margin) + w / 2 + margin;
+      const ry = Math.random() * (canvasHeight - h - 2 * margin) + h / 2 + margin;
+      const candidate = computeBBox(type, size, rx, ry, margin);
+      const collides = existingBoxes.some(box => boxesOverlap(candidate, box));
+      if (!collides) return { x: rx, y: ry };
+    }
+
+    // Last resort: center
+    return { x: canvasWidth / 2, y: canvasHeight / 2 };
+  };
   
   // Clear canvas and redraw all shapes
   const redrawCanvas = () => {
@@ -150,10 +238,11 @@ const CanvasArea = ({
   
   // Add new shape from command
   const addShape = (command) => {
+    const pos = findNonOverlappingPosition(command.type, command.size || 'medium');
     const newShape = {
       ...command,
-      x: Math.random() * (canvasWidth - 100) + 50,
-      y: Math.random() * (canvasHeight - 100) + 50,
+      x: pos.x,
+      y: pos.y,
       id: Date.now() + Math.random()
     };
     

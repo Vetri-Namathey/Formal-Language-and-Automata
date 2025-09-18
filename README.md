@@ -1,6 +1,6 @@
-#  Natural Language-Guided Sketching Through Modular Command Interpretation
+# Natural Language-Guided Sketching (React + FastAPI)
 
-This project is an educational drawing game that parses simple English commands and draws shapes on a canvas. The parsing is implemented in a Python FastAPI backend (FSM + grammar + rule engine), while the frontend is React. Firebase Firestore is used to persist user progress.
+An educational drawing game: type commands like "draw a red circle" and watch shapes appear. Parsing is handled by a Python FastAPI backend (FSM + grammar + rule engine). The React frontend handles UI, i18n, and rendering. User progress is optionally persisted with Firebase Firestore.
 
 ## Recent additions
 
@@ -9,6 +9,10 @@ This project is an educational drawing game that parses simple English commands 
 - Command history (last 10 commands persisted per user)
 - Rule engine that analyzes commands and provides context-aware hints and suggestions
 - Unified `FeedbackBox` UI to surface analyzer output
+ - Non-overlapping canvas placement for shapes (grid-based)
+ - UI i18n (English, Tamil, Hindi, Malayalam) with a language selector
+ - Training completion at Level 5 with a unique confetti celebration and modal
+ - Parsed View panel showing Original → Translated → Normalized → Parsed
 
 ## Important files
 
@@ -20,10 +24,11 @@ Backend (Python):
 - `backend/requirements.txt` — Backend dependencies.
 
 Frontend (React):
-- Note: The old `src/fsm/` JS modules are deprecated and no longer used by the app.
 - `src/services/backendApi.js` — Client to call FastAPI endpoints.
 - `src/pages/Game.jsx` — Main page; calls backend for parsing/analyzing; handles scoring, level tracker, scoreboard, badges, history.
+- `src/components/CanvasArea.jsx` — Canvas rendering with non-overlapping grid placement of shapes.
 - `src/components/FeedbackBox.jsx` — Feedback UI component.
+- `src/i18n.js` and `public/locales/**` — UI internationalization.
 
 ## Quick local test flow
 
@@ -41,7 +46,12 @@ uvicorn app.main:app --reload --port 8000
 npm start
 ```
 
-3. Open http://localhost:3000 in your browser.
+3. Open http://localhost:3000 in your browser (or the port shown in the terminal).
+
+If you hit a peer dependency error installing packages (react-scripts vs typescript), use this:
+```powershell
+npm install --legacy-peer-deps
+```
 
 3. Test scenarios:
 	- Valid command: `draw a red circle` — should draw the shape and show success feedback.
@@ -50,6 +60,7 @@ npm start
 	- Malformed commands: expect FSM error messages and rule-engine suggestions.
 	- Check Command History: the right panel shows last 10 commands with accepted/rejected and parsed results.
 	- Level progression: after 5 successful commands (default), LevelTracker should allow leveling up and unlocking new vocab.
+	- Level cap & celebration: when you reach Level 5 and meet the success threshold, leveling stops and a “Training Complete” modal appears with a confetti blast.
 
 ## Parsing architecture (Python)
 
@@ -59,5 +70,42 @@ npm start
 
 ## Notes & next steps
 
-- I recommend adding unit tests for Python `validate_command` and `analyze_command` to lock behavior down.
-- Optional: add a UI health indicator (already included) to surface backend availability.
+- Consider adding Python unit tests for `validate_command` and `analyze_command`.
+- A UI health indicator for backend availability is included in the Game page.
+- Frontend CRA boilerplate tests have been disabled to avoid jsdom canvas issues.
+
+## Internationalization & Translation
+
+The app supports UI localization via react-i18next and pre-parse command translation. Non-English commands are translated to English, normalized, and then parsed by the backend.
+
+### Translation providers
+
+The translation service is environment-driven and supports:
+
+1. Proxy (recommended): set `REACT_APP_TRANSLATOR_PROXY_URL` to your backend endpoint that securely calls Azure Translator or an LLM.
+2. Azure Translator (dev only): set `REACT_APP_TRANSLATOR_PROVIDER=azure` and provide `REACT_APP_AZURE_TRANSLATOR_KEY`, `REACT_APP_AZURE_TRANSLATOR_REGION` (and optionally `REACT_APP_AZURE_TRANSLATOR_ENDPOINT`).
+3. LLM (Groq/OpenAI-compatible): set `REACT_APP_TRANSLATOR_PROVIDER=groq` (or `llm`/`openai`) and configure:
+	- `REACT_APP_LLM_TRANSLATOR_BASE_URL` (Groq default: `https://api.groq.com/openai/v1`)
+	- `REACT_APP_LLM_TRANSLATOR_API_KEY`
+	- `REACT_APP_LLM_TRANSLATOR_MODEL` (e.g., `llama-3.1-8b-instant`)
+4. Mock fallback: tiny dictionary fallback and passthrough.
+
+Environment variables are read from `.env.local` (not committed). Never commit real API keys.
+
+### Normalization
+
+After translation, the command is normalized to match the grammar vocabulary (e.g., ellipse→oval, crimson→red, tiny→small). Extend `src/services/normalizeService.js` as needed.
+
+## Cleaning and removed files
+
+- Deprecated JS FSM modules removed: `src/fsm/*` are no longer used (Python backend is authoritative).
+- CRA boilerplate trimmed: tests disabled, web vitals reporting removed from bootstrap.
+- Unused PWA assets/metadata minimized from `public/index.html`.
+
+## UI polish & animations
+
+- Success feedback glow and error shake animations tied to command results.
+- Progress bar shine and pulse when ready to level up.
+- Training completion modal includes a subtle shimmer and a confetti celebration (via `canvas-confetti`).
+
+Note: Custom animation styles are in `src/styles/animations.css` and shimmer styles in `src/styles/main.css`, which are imported by `src/index.css`.

@@ -6,13 +6,17 @@ import LevelTracker from '../components/LevelTracker.jsx';
 // Backend integration: use Python FastAPI instead of local JS FSM/rule engine
 import { parseCommand, analyzeCommandAPI, getVocab } from '../services/backendApi.js';
 import { translateToEnglish } from '../services/translationService.js';
+import { normalizeEnglishForGrammar } from '../services/normalizeService.js';
 import FeedbackBox from '../components/FeedbackBox.jsx';
 import LevelUpCelebration from '../components/LevelUpCelebration.jsx';
+import TrainingCompleteModal from '../components/TrainingCompleteModal.jsx';
+import ConfettiBurst from '../components/ConfettiBurst.jsx';
 
 import db from '../firebase.js';
-import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp, increment } from "firebase/firestore";
 import ScoreBoard from '../components/ScoreBoard.jsx';
 import CommandHistory from '../components/CommandHistory.jsx';
+import ParsedView from '../components/ParsedView.jsx';
 
 
 const Game = ({ onLevelComplete, onScoreUpdate }) => {
@@ -24,7 +28,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   const [drawCommands, setDrawCommands] = useState([]);
   const [feedback, setFeedback] = useState({
     type: 'info', // 'success', 'error', 'warning', 'info'
-    message: 'Welcome! Try drawing a shape using voice or text commands.',
+    message: t('welcomeMessage'),
     suggestions: []
   });
   const [score, setScore] = useState(0);
@@ -44,10 +48,18 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   const [commandHistory, setCommandHistory] = useState([]); // latest first
   const [levelVocab, setLevelVocab] = useState({});
   const [backendOnline, setBackendOnline] = useState(true);
+
+  // Parsed view state
+  const [pvOriginal, setPvOriginal] = useState('');
+  const [pvTranslated, setPvTranslated] = useState('');
+  const [pvNormalized, setPvNormalized] = useState('');
+  const [pvTokens, setPvTokens] = useState([]);
+  const [pvParsed, setPvParsed] = useState(null);
   
   // Celebration state
   const [showLevelUpCelebration, setShowLevelUpCelebration] = useState(false);
   const [celebrationLevel, setCelebrationLevel] = useState(1);
+  const [showTrainingComplete, setShowTrainingComplete] = useState(false);
   
   // Command feedback animations
   const [commandFeedbackAnimation, setCommandFeedbackAnimation] = useState('');
@@ -202,15 +214,15 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
           setShapesTried(userData.shapesTried || []);
           setFeedback({
             type: 'info',
-            message: `Welcome back! You are on level ${userData.level || 1}.`,
-            suggestions: ['Try drawing some shapes to continue!']
+            message: t('welcomeBack', { level: userData.level || 1 }),
+            suggestions: [t('tryDrawingMore')]
           });
         }
       } catch (err) {
         console.error("Error loading user data:", err);
         setFeedback({
           type: 'warning',
-          message: 'Could not load your progress. Starting from level 1.',
+          message: t('loadProgressError'),
           suggestions: []
         });
       }
@@ -225,7 +237,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     setFsm(null);
     setFeedback({
       type: 'info',
-      message: `Level ${currentLevel} started! Try drawing shapes with commands.`,
+      message: t('levelStart', { level: currentLevel }),
       suggestions: []
     });
 
@@ -260,13 +272,23 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
   const handleCommandSubmit = async (commandText) => {
     console.log('[Game] submitted command:', commandText);
 
-    // Translate command if necessary
-    const translatedCommand = await translateToEnglish(commandText, language);
-    console.log(`[Game] Translated command: ${translatedCommand}`);
+  // Translate command if necessary
+  const translatedCommand = await translateToEnglish(commandText, language);
+  console.log(`[Game] Translated command: ${translatedCommand}`);
 
-    const text = (translatedCommand || '').toString().trim().replace(/[.?!]+$/,'');
+  // Normalize translated English to match parser vocabulary
+  const normalizedForParser = normalizeEnglishForGrammar(translatedCommand);
+  console.log(`[Game] Normalized command: ${normalizedForParser}`);
+
+  const text = (normalizedForParser || '').toString().trim().replace(/[.?!]+$/,'');
     const tokens = text.toLowerCase().split(/\s+/).filter(Boolean);
     console.log('[Game] tokens:', tokens);
+
+  // Update parsed view input parts early
+  setPvOriginal(commandText);
+  setPvTranslated(translatedCommand);
+  setPvNormalized(normalizedForParser);
+  setPvTokens(tokens);
 
     // Token category/validation is now handled by the Python backend
 
@@ -274,7 +296,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     let result = null;
     let analysis = null;
     try {
-      result = await parseCommand(translatedCommand, currentLevel);
+      result = await parseCommand(normalizedForParser, currentLevel);
       setBackendOnline(true);
     } catch (e) {
       console.error('Backend parse error, falling back to client:', e);
@@ -283,7 +305,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       setBackendOnline(false);
     }
     try {
-      analysis = await analyzeCommandAPI(translatedCommand, currentLevel);
+      analysis = await analyzeCommandAPI(normalizedForParser, currentLevel);
       setBackendOnline(true);
     } catch (e) {
       console.error('Backend analyze error:', e);
@@ -291,16 +313,22 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       setBackendOnline(false);
     }
     
-    // Update game stats
-    const newStats = {
-      ...gameStats,
-      totalCommands: gameStats.totalCommands + 1,
-      successfulCommands: result.isValid ? gameStats.successfulCommands + 1 : gameStats.successfulCommands
-    };
-    
-    setGameStats(newStats);
+    // Update game stats (functional to avoid stale state)
+    if (result.isValid) {
+      setGameStats(prev => ({
+        ...prev,
+        totalCommands: prev.totalCommands + 1,
+        successfulCommands: prev.successfulCommands + 1
+      }));
+    } else {
+      setGameStats(prev => ({
+        ...prev,
+        totalCommands: prev.totalCommands + 1
+      }));
+    }
 
     if (result.isValid && result.canDraw) {
+      setPvParsed(result.parsedCommand || null);
       // Update streak
       const newStreak = streak + 1;
       setStreak(newStreak);
@@ -339,9 +367,9 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         }
       }
       // Success - add drawing command
-      setDrawCommands(prev => [...prev, result.parsedCommand]);
-      const newScore = score + 10;
-      setScore(newScore);
+  setDrawCommands(prev => [...prev, result.parsedCommand]);
+  // Increment score safely
+  setScore(prev => prev + 10);
       
       // Success visual effects
       setCommandFeedbackAnimation('success-glow');
@@ -353,12 +381,11 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         setCanvasGlowEffect('');
       }, 1000);
       
-      const updatedStats = {
-        ...newStats,
-        shapesDrawn: newStats.shapesDrawn + 1
-      };
-      
-      setGameStats(updatedStats);
+      // Increment shapesDrawn using functional update to prevent off-by-one
+      setGameStats(prev => ({
+        ...prev,
+        shapesDrawn: prev.shapesDrawn + 1
+      }));
       
       // Prefer rule engine feedback if it produced a message; otherwise set simple success
       if (analysis && analysis.message) {
@@ -375,10 +402,10 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       const updateUserStats = async () => {
         try {
           await updateDoc(doc(db, "users", userId), {
-            score: newScore,
-            totalCommands: updatedStats.totalCommands,
-            successfulCommands: updatedStats.successfulCommands,
-            shapesDrawn: updatedStats.shapesDrawn,
+            score: increment(10),
+            totalCommands: increment(1),
+            successfulCommands: increment(1),
+            shapesDrawn: increment(1),
             streak: newStreak,
             shapesTried: shapesTried,
             // update history
@@ -405,11 +432,12 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
       // Notify parent about score update
       if (onScoreUpdate) {
-        onScoreUpdate(newScore);
+        onScoreUpdate(score + 10);
       }
       
     } else {
-      // Error - show feedback
+  // Error - show feedback
+  setPvParsed(result.parsedCommand || null);
       // reset streak on failure
       setStreak(0);
       
@@ -440,7 +468,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       const updateUserStats = async () => {
         try {
           await updateDoc(doc(db, "users", userId), {
-            totalCommands: newStats.totalCommands,
+            totalCommands: increment(1),
             streak: 0,
             commandHistory: commandHistory,
             updatedAt: new Date()
@@ -497,7 +525,22 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
 
   // Handle level up
   const handleLevelUp = async () => {
-    if (currentLevel < maxLevel && gameStats.successfulCommands >= requiredCommandsToLevelUp) {
+    if (gameStats.successfulCommands < requiredCommandsToLevelUp) return;
+
+    // If already at or beyond cap, show training complete once
+    if (currentLevel >= maxLevel) {
+      if (!showTrainingComplete) {
+        setShowTrainingComplete(true);
+        setFeedback({
+          type: 'success',
+          message: t('trainingComplete.toast'),
+          suggestions: []
+        });
+      }
+      return;
+    }
+
+    if (currentLevel < maxLevel) {
       const newLevel = currentLevel + 1;
       
       // Bonus points for leveling up
@@ -521,11 +564,8 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       
       setFeedback({
         type: 'success',
-        message: `Congratulations! You've advanced to Level ${newLevel}! (+${levelUpBonus} bonus points)`,
-        suggestions: [
-          'Try the new vocabulary!', 
-          'New shapes and colors are available!'
-        ]
+        message: t('levelUpCongrats', { level: newLevel, bonus: levelUpBonus }),
+        suggestions: [t('tryNewVocab'), t('newShapesAvailable')]
       });
       
       // Update in Firebase using our new function
@@ -607,7 +647,7 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     setDrawCommands([]);
     setFeedback({
       type: 'info',
-      message: 'Canvas cleared! Start drawing new shapes.',
+      message: t('canvasCleared'),
       suggestions: []
     });
   };
@@ -647,21 +687,21 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         <div className="bg-white rounded-lg shadow-md p-4 card-hover">
           {!backendOnline && (
             <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-800 text-sm slide-in-bottom">
-              Backend offline — parsing disabled. Start the FastAPI server (see backend/README.md).
+              {t('banner.backendOffline')}
             </div>
           )}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800 fade-in-scale">Grammar Drawing Game</h1>
-              <p className="text-gray-600 fade-in-scale stagger-1">Level {currentLevel} - Learn English through drawing!</p>
+              <h1 className="text-2xl font-bold text-gray-800 fade-in-scale">{t('game.title')}</h1>
+              <p className="text-gray-600 fade-in-scale stagger-1">{t('game.subtitle', { level: currentLevel })}</p>
             </div>
             
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-600 transition-all duration-300 hover:scale-110 count-up">
-                Score: {score}
+                {t('score')}: {score}
               </div>
               <div className="text-sm text-gray-500 fade-in-scale stagger-2">
-                Success Rate: {gameStats.totalCommands > 0 ? Math.round((gameStats.successfulCommands / gameStats.totalCommands) * 100) : 0}%
+                {t('stats.successRate')}: {gameStats.totalCommands > 0 ? Math.round((gameStats.successfulCommands / gameStats.totalCommands) * 100) : 0}%
               </div>
             </div>
           </div>
@@ -683,55 +723,55 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
           
           {/* Game Stats */}
           <div className="bg-white rounded-lg shadow-md p-4 card-hover">
-            <h3 className="text-lg font-semibold mb-3">Game Statistics</h3>
+            <h3 className="text-lg font-semibold mb-3">{t('stats.title')}</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-2xl font-bold text-blue-600 transition-all duration-300">{gameStats.shapesDrawn}</div>
-                <div className="text-sm text-gray-600">Shapes Drawn</div>
+                <div className="text-sm text-gray-600">{t('stats.shapesDrawn')}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-600 transition-all duration-300">{gameStats.successfulCommands}</div>
-                <div className="text-sm text-gray-600">Successful Commands</div>
+                <div className="text-sm text-gray-600">{t('stats.successfulCommands')}</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-orange-600 transition-all duration-300">{gameStats.totalCommands}</div>
-                <div className="text-sm text-gray-600">Total Attempts</div>
+                <div className="text-sm text-gray-600">{t('stats.totalAttempts')}</div>
               </div>
             </div>
           </div>
 
           {/* Level Guide */}
           <div className="bg-white rounded-lg shadow-md p-4 card-hover">
-            <h3 className="text-lg font-semibold mb-3">Level {currentLevel} Guide</h3>
+            <h3 className="text-lg font-semibold mb-3">{t('guide.title', { level: currentLevel })}</h3>
             <div className="space-y-2 text-sm">
               <div className="fade-in-scale stagger-1">
-                <span className="font-medium">Available Commands:</span> draw, make, create
+                <span className="font-medium">{t('guide.availableCommands')}</span> draw, make, create
                 {currentLevel >= 3 && ', paint'}
                 {currentLevel >= 4 && ', sketch, add'}
               </div>
               <div className="fade-in-scale stagger-2">
-                <span className="font-medium">Colors:</span> red, blue, green, yellow
+                <span className="font-medium">{t('guide.colors')}</span> red, blue, green, yellow
                 {currentLevel >= 2 && ', orange, purple'}
                 {currentLevel >= 3 && ', pink, black, white'}
                 {currentLevel >= 4 && ', gray, brown, cyan, magenta'}
                 {currentLevel >= 5 && ', lime, navy, maroon, olive'}
               </div>
               <div className="fade-in-scale stagger-3">
-                <span className="font-medium">Shapes:</span> circle, square
+                <span className="font-medium">{t('guide.shapes')}</span> circle, square
                 {currentLevel >= 2 && ', triangle, rectangle'}
                 {currentLevel >= 3 && ', line'}
                 {currentLevel >= 4 && ', oval, diamond'}
               </div>
               {currentLevel >= 3 && (
                 <div className="fade-in-scale stagger-4">
-                  <span className="font-medium">Objects:</span> house, tree, star
+                  <span className="font-medium">{t('guide.objects')}</span> house, tree, star
                   {currentLevel >= 4 && ', car, heart, flower, sun, moon'}
                   {currentLevel >= 5 && ', cloud, mountain, boat, fish, bird'}
                 </div>
               )}
               {currentLevel >= 3 && (
                 <div className="fade-in-scale stagger-5">
-                  <span className="font-medium">Sizes:</span> small, big, large
+                  <span className="font-medium">{t('guide.sizes')}</span> small, big, large
                   {currentLevel >= 4 && ', tiny, medium, huge'}
                   {currentLevel >= 5 && ', giant'}
                 </div>
@@ -784,6 +824,15 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
           {/* Feedback Box (powered by ruleEngine) */}
           <FeedbackBox feedback={feedback} animationTrigger={commandFeedbackAnimation} />
 
+          {/* Parsed View */}
+          <ParsedView 
+            original={pvOriginal} 
+            translated={pvTranslated} 
+            normalized={pvNormalized} 
+            tokens={pvTokens} 
+            parsedCommand={pvParsed} 
+          />
+
           {/* Scoreboard */}
           <ScoreBoard score={score} streak={streak} badges={badges} />
 
@@ -799,6 +848,13 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
           onComplete={() => setShowLevelUpCelebration(false)}
         />
       )}
+      {showTrainingComplete && (
+        <ConfettiBurst durationMs={2800} intensity={1.0} onDone={null} />
+      )}
+      <TrainingCompleteModal
+        open={showTrainingComplete}
+        onClose={() => setShowTrainingComplete(false)}
+      />
     </div>
   );
 };

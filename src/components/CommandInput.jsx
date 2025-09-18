@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const CommandInput = ({ 
   onCommandSubmit, 
@@ -11,6 +12,7 @@ const CommandInput = ({
   speechText = '',
   feedbackAnimation = null
 }) => {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [lastMicClick, setLastMicClick] = useState(0);
@@ -94,10 +96,8 @@ const CommandInput = ({
   return (
     <div className={`command-input-container bg-white border-2 border-gray-300 rounded-lg shadow-lg ${containerAnimationClass}`}>
       <div className="p-3 bg-gray-50 border-b">
-        <h3 className="text-lg font-semibold text-gray-700">Command Input</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          Type or speak your drawing commands
-        </p>
+        <h3 className="text-lg font-semibold text-gray-700">{t('commandInput.title')}</h3>
+        <p className="text-sm text-gray-500 mt-1">{t('commandInput.subtitle')}</p>
       </div>
       
       <div className="p-4">
@@ -132,7 +132,7 @@ const CommandInput = ({
                     ? 'bg-red-500 text-white listening-pulse hover:bg-red-600'
                     : 'bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:bg-gray-100'
                 }`}
-                title={isListening ? 'Stop listening' : 'Start voice input'}
+                title={isListening ? t('commandInput.micStop') : t('commandInput.micStart')}
               >
                 {isListening ? (
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -155,36 +155,34 @@ const CommandInput = ({
                   <div className="voice-wave"></div>
                   <div className="voice-wave"></div>
                 </div>
-                <span className="animate-pulse">Listening for your command...</span>
+                <span className="animate-pulse">{t('commandInput.listening')}</span>
               </div>
             )}
           </div>
           
           {/* Submit Button */}
           <div className="flex justify-between items-center pt-2">
-            <div className="text-sm text-gray-500">
-              Press Enter or click Submit
-            </div>
+            <div className="text-sm text-gray-500">{t('commandInput.pressEnterOrSubmit')}</div>
             
             <button
               type="submit"
               disabled={disabled || !inputValue.trim()}
               className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-300 font-medium btn-hover ripple-effect"
             >
-              Submit
+              {t('commandInput.submit')}
             </button>
           </div>
         </form>
         
         {/* Quick Command Examples */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-700 mb-2">Example commands:</p>
+          <p className="text-sm font-medium text-gray-700 mb-2">{t('commandInput.examplesLabel')}</p>
           <div className="flex flex-wrap gap-2">
             {[
-              "Draw a red circle",
-              "Make a blue square", 
-              "Create a green triangle",
-              "Draw a big yellow house"
+              t('exampleCommands.drawRedCircle'),
+              t('exampleCommands.makeBlueSquare'),
+              t('exampleCommands.createGreenTriangle'),
+              t('exampleCommands.drawBigYellowHouse')
             ].map((example, index) => (
               <button
                 key={index}

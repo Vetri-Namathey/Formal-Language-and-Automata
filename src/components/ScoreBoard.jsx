@@ -99,9 +99,9 @@ const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
             {streak} {streak > 0 && <span className="text-lg">{getStreakEmoji()}</span>}
           </div>
           <div className="text-sm text-gray-500">
-            {streak >= 10 ? 'Epic Streak!' : 
-             streak >= 5 ? 'Great Streak!' : 
-             streak >= 3 ? 'Good Streak!' : 
+            {streak >= 10 ? t('streakEpic') : 
+             streak >= 5 ? t('streakGreat') : 
+             streak >= 3 ? t('streakGood') : 
              t('streak')}
           </div>
         </div>
@@ -121,7 +121,7 @@ const ScoreBoard = ({ score, streak, badges, newBadgeIds = [] }) => {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-gray-400">No badges yet. Earn badges by playing!</div>
+            <div className="text-sm text-gray-400">{t('noBadges')}</div>
           )}
         </div>
       </div>

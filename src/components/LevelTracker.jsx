@@ -18,8 +18,10 @@ const LevelTracker = ({
     100
   );
 
-  // Determine if level up is available
-  const canLevelUp = currentLevel < maxLevel && successfulCommands >= requiredCommandsToLevelUp;
+  // Determine if we reached the maximum level cap
+  const atCap = currentLevel >= maxLevel;
+  // Determine if level up is available (not at cap and progress met)
+  const canLevelUp = !atCap && successfulCommands >= requiredCommandsToLevelUp;
 
   // Animate progress bar when it changes
   useEffect(() => {
@@ -67,10 +69,10 @@ const LevelTracker = ({
       </div>
 
       <div className="text-sm text-gray-600 mb-4">
-        {successfulCommands} / {requiredCommandsToLevelUp} successful commands
+        {t('levelTracker.successfulCommandsLabel', { success: successfulCommands, required: requiredCommandsToLevelUp })}
         {canLevelUp && (
           <span className="ml-2 text-green-600 font-semibold animate-pulse">
-            🚀 Ready to level up!
+            {t('levelTracker.readyToLevelUp')}
           </span>
         )}
       </div>
@@ -78,14 +80,18 @@ const LevelTracker = ({
       {/* Level up button */}
       <button 
         onClick={onLevelUp}
-        disabled={!canLevelUp}
+        disabled={atCap || !canLevelUp}
         className={`w-full px-4 py-2 rounded font-semibold transition-all duration-300 btn-hover ${
           canLevelUp 
             ? 'bg-indigo-600 text-white hover:bg-indigo-700 ripple-effect' 
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
         }`}
       >
-        {canLevelUp ? '🎉 Level Up!' : `Complete ${requiredCommandsToLevelUp - successfulCommands} more commands`}
+        {atCap
+          ? t('trainingComplete.title')
+          : canLevelUp 
+            ? t('levelTracker.levelUpButton') 
+            : t('levelTracker.completeMoreCommands', { remaining: Math.max(requiredCommandsToLevelUp - successfulCommands, 0) })}
       </button>
 
       {/* Level badges */}
@@ -98,7 +104,7 @@ const LevelTracker = ({
                 ? 'bg-indigo-600 text-white shadow-lg'
                 : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
             } ${i + 1 === currentLevel ? 'ring-2 ring-indigo-300 ring-offset-2' : ''}`}
-            title={`${t('level')} ${i + 1}${i + 1 <= currentLevel ? ' (Unlocked)' : ' (Locked)'}`}
+            title={`${t('level')} ${i + 1}${i + 1 <= currentLevel ? ` (${t('levelTracker.unlocked')})` : ` (${t('levelTracker.locked')})`}`}
           >
             {i + 1}
           </div>
