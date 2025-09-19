@@ -46,6 +46,7 @@ const FeedbackBox = ({ feedback, animationTrigger }) => {
       case 'success': return 'bg-green-50 border-green-200 text-green-800';
       case 'error': return 'bg-red-50 border-red-200 text-red-800';
       case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
+      case 'compound': return 'bg-purple-50 border-purple-200 text-purple-800'; // Special style for compound suggestions
       default: return 'bg-blue-50 border-blue-200 text-blue-800';
     }
   };

@@ -745,8 +745,8 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
             <h3 className="text-lg font-semibold mb-3">{t('guide.title', { level: currentLevel })}</h3>
             <div className="space-y-2 text-sm">
               <div className="fade-in-scale stagger-1">
-                <span className="font-medium">{t('guide.availableCommands')}</span> draw, make, create
-                {currentLevel >= 3 && ', paint'}
+                <span className="font-medium">{t('guide.availableCommands')}</span> draw, make
+                {currentLevel >= 2 && ', create, paint'}
                 {currentLevel >= 4 && ', sketch, add'}
               </div>
               <div className="fade-in-scale stagger-2">

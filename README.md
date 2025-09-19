@@ -2,6 +2,22 @@
 
 An educational drawing game: type commands like "draw a red circle" and watch shapes appear. Parsing is handled by a Python FastAPI backend (FSM + grammar + rule engine). The React frontend handles UI, i18n, and rendering. User progress is optionally persisted with Firebase Firestore.
 
+## Recent Updates & Fixes
+
+- Fixed level progression system
+  - Properly gated commands by level (e.g., 'create' moved to level 2)
+  - Updated level guide display to accurately show available commands
+  - Improved level vocabulary management in backend
+- Enhanced color handling
+  - Added support for compound colors (e.g., "light green", "dark blue")
+  - Fixed color hex value generation for compound colors
+  - Improved color normalization in parsing
+- UI Improvements
+  - Enhanced ParsedView component to show command breakdown clearly
+  - Fixed command suggestion display and filtering
+  - Improved feedback messages for invalid commands
+  - Added proper error handling for backend communication
+
 ## Recent additions
 
 - Level progression (unlock vocabulary by level)
