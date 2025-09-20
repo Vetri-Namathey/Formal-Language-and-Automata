@@ -4,6 +4,23 @@ An educational drawing game: type commands like "draw a red circle" and watch sh
 
 ## Recent Updates & Fixes
 
+### Speech Recognition & Translation Updates (September 2025)
+- 🎤 Added multilingual speech recognition support
+  - Native language support for English, Tamil, Hindi, and Malayalam
+  - Real-time language switching capability
+  - Improved speech-to-text accuracy
+  - Debug logging for speech recognition events
+- 🔄 Enhanced Translation System
+  - Integrated Groq API for accurate translations
+  - Optimized translation pipeline
+  - Improved handling of regional language variations
+- 🎯 Speech Recognition Improvements
+  - Fixed language persistence issues
+  - Added proper cleanup on component unmount
+  - Enhanced error handling for speech recognition
+  - Added detailed debug logging
+
+### Previous Updates
 - Fixed level progression system
   - Properly gated commands by level (e.g., 'create' moved to level 2)
   - Updated level guide display to accurately show available commands

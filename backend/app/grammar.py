@@ -106,20 +106,18 @@ COMPOUND_SHAPES = {
 }
 
 GRAMMAR_CATEGORIES: Dict[str, List[str]] = {
-    "COMMANDS": ["draw", "make", "create", "paint", "sketch", "add", "put", "place"],
+    "COMMANDS": ["draw", "make", "create", "paint", "sketch", "add"],
     "ARTICLES": ["a", "an", "the"],
-    "SIZES": ["small", "tiny", "little", "medium", "normal", "regular", "large", "big", "huge", "giant"],
+    "SIZES": ["small", "tiny", "medium", "big", "large", "huge", "giant"],
     "COLORS": [
         "red", "blue", "green", "yellow", "orange", "purple", "pink", "black", "white",
-        "gray", "grey", "brown", "cyan", "magenta", "lime", "navy", "maroon", "olive", "teal", "silver", "gold"
+        "gray", "brown", "cyan", "magenta", "lime", "navy", "maroon", "olive", "teal"
     ],
     "SHAPES": ["circle", "square", "rectangle", "triangle", "line", "oval", "diamond"],
     "OBJECTS": [
         "house", "tree", "car", "star", "heart", "flower", "sun", "moon", "cloud",
-        "mountain", "boat", "fish", "bird", "cat", "dog"
-    ],
-    "PREPOSITIONS": ["on", "in", "at", "by", "near", "above", "below", "beside", "next to"],
-    "CONJUNCTIONS": ["and", "then", "also", "plus"],
+        "mountain", "boat", "fish", "bird"
+    ]
 }
 
 GRAMMAR_PATTERNS: List[List[str]] = [

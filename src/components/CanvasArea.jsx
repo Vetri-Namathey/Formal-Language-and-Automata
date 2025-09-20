@@ -121,46 +121,45 @@ const CanvasArea = ({
     });
   };
   
-  // Draw grid helper lines
+  // Optimized grid drawing with single path
   const drawGrid = (ctx) => {
     ctx.strokeStyle = '#e9ecef';
     ctx.lineWidth = 1;
+    ctx.beginPath();
     
-    // Vertical lines
+    // Draw all vertical lines in one path
     for (let x = 0; x <= canvasWidth; x += 50) {
-      ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvasHeight);
-      ctx.stroke();
     }
     
-    // Horizontal lines
+    // Draw all horizontal lines in the same path
     for (let y = 0; y <= canvasHeight; y += 50) {
-      ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(canvasWidth, y);
-      ctx.stroke();
     }
+    
+    // Single stroke call for all lines
+    ctx.stroke();
   };
   
-  // Draw individual shape based on command
+  // Simplified shape rendering with preset size multipliers
   const drawShape = (ctx, shape) => {
     const { type, color, size = 'medium', x, y } = shape;
     
-    // Set color
-    ctx.fillStyle = color || '#333';
-    ctx.strokeStyle = color || '#333';
+    // Set color once
+    const shapeColor = color || '#333';
+    ctx.fillStyle = shapeColor;
+    ctx.strokeStyle = shapeColor;
     ctx.lineWidth = 2;
     
-    // Calculate size multiplier
-    const sizeMultiplier = {
+    // Optimized size calculation
+    const baseSize = 40 * ({
       small: 0.7,
       medium: 1,
       large: 1.5,
       big: 1.8
-    }[size] || 1;
-    
-    const baseSize = 40 * sizeMultiplier;
+    }[size] || 1);
     
     switch (type) {
       case 'circle':
@@ -170,10 +169,12 @@ const CanvasArea = ({
         break;
         
       case 'square':
+        ctx.fillRect(x - baseSize/2, y - baseSize/2, baseSize, baseSize);
+        break;
+        
       case 'rectangle':
-        const width = type === 'square' ? baseSize : baseSize * 1.5;
-        const height = baseSize;
-        ctx.fillRect(x - width/2, y - height/2, width, height);
+        const width = baseSize * 1.5;
+        ctx.fillRect(x - width/2, y - baseSize/2, width, baseSize);
         break;
         
       case 'triangle':
@@ -193,57 +194,46 @@ const CanvasArea = ({
         break;
         
       case 'house':
-        // Simple house shape
-        const houseSize = baseSize;
-        // House base
-        ctx.fillRect(x - houseSize/2, y - houseSize/4, houseSize, houseSize/2);
-        // Roof
+        // Base (optimized drawing order)
+        ctx.fillRect(x - baseSize/2, y - baseSize/4, baseSize, baseSize/2);
+        // Roof (single path)
         ctx.beginPath();
-        ctx.moveTo(x, y - houseSize/2);
-        ctx.lineTo(x - houseSize/2, y - houseSize/4);
-        ctx.lineTo(x + houseSize/2, y - houseSize/4);
-        ctx.closePath();
+        ctx.moveTo(x - baseSize/2, y - baseSize/4);
+        ctx.lineTo(x, y - baseSize/2);
+        ctx.lineTo(x + baseSize/2, y - baseSize/4);
         ctx.fill();
         break;
         
       case 'tree':
-        // Simple tree shape
-        const treeSize = baseSize;
-        // Trunk
-        ctx.fillRect(x - treeSize/8, y + treeSize/4, treeSize/4, treeSize/4);
-        // Leaves (circle)
+        // Leaves (draw first)
         ctx.beginPath();
-        ctx.arc(x, y - treeSize/8, treeSize/3, 0, 2 * Math.PI);
+        ctx.arc(x, y - baseSize/8, baseSize/3, 0, 2 * Math.PI);
         ctx.fill();
+        // Trunk (draw on top)
+        ctx.fillRect(x - baseSize/8, y + baseSize/4, baseSize/4, baseSize/4);
         break;
         
       default:
-        // Draw a labeled placeholder for unknown types
-        ctx.save();
-        ctx.strokeStyle = color || '#333';
-        ctx.lineWidth = 2;
+        // Simplified placeholder
         ctx.fillStyle = '#fffbe6';
-        ctx.beginPath();
-        ctx.rect(x - baseSize/2, y - baseSize/2, baseSize, baseSize);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = color || '#333';
+        ctx.fillRect(x - baseSize/2, y - baseSize/2, baseSize, baseSize);
+        ctx.strokeRect(x - baseSize/2, y - baseSize/2, baseSize, baseSize);
+        ctx.fillStyle = shapeColor;
         ctx.font = `${Math.max(12, baseSize/3)}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(type, x, y);
-        ctx.restore();
     }
   };
   
-  // Add new shape from command
+  // Add new shape from command using sequential IDs
   const addShape = (command) => {
     const pos = findNonOverlappingPosition(command.type, command.size || 'medium');
     const newShape = {
       ...command,
       x: pos.x,
       y: pos.y,
-      id: Date.now() + Math.random()
+      id: shapes.length + 1
     };
     
     setShapes(prev => [...prev, newShape]);

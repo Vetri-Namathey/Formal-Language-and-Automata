@@ -18,13 +18,18 @@ import ScoreBoard from '../components/ScoreBoard.jsx';
 import CommandHistory from '../components/CommandHistory.jsx';
 import ParsedView from '../components/ParsedView.jsx';
 
+// Language mapping for speech recognition
+  const langMap = {
+    'en': 'en-US',
+    'ta': 'ta-IN',
+    'hi': 'hi-IN',
+    'ml': 'ml-IN'
+  };
 
 const Game = ({ onLevelComplete, onScoreUpdate }) => {
   const { t, i18n } = useTranslation();
   // Game state
   const [currentLevel, setCurrentLevel] = useState(1);
-  // Deprecated local FSM kept for fallback only
-  const [fsm, setFsm] = useState(null);
   const [drawCommands, setDrawCommands] = useState([]);
   const [feedback, setFeedback] = useState({
     type: 'info', // 'success', 'error', 'warning', 'info'
@@ -130,18 +135,20 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = false;
-      recognitionInstance.lang = 'en-US';
       
+      // Set initial recognition language
+      recognitionInstance.lang = langMap[language] || 'en-US';
+
       recognitionInstance.onstart = () => {
-        console.log('Speech recognition started');
+        console.log(`[Speech] Recognition started in ${recognitionInstance.lang}`);
         setIsListening(true);
       };
       
       recognitionInstance.onresult = (event) => {
         let transcript = event.results[0][0].transcript || '';
-        // Remove trailing sentence punctuation (., ?, !)
+        console.log(`[Speech Debug] Raw result:`, event.results[0][0]);
+        console.log(`[Speech Debug] Current language:`, recognitionInstance.lang);
         transcript = transcript.trim().replace(/[.?!]+$/,'');
-        // populate the input; user will manually press Submit
         setSpeechText(transcript);
         console.log('Speech recognition result:', transcript);
       };
@@ -149,7 +156,6 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       recognitionInstance.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
-        
         let errorMessage = 'Speech recognition failed. Please try again or use text input.';
         if (event.error === 'not-allowed') {
           errorMessage = 'Microphone access denied. Please allow microphone access and try again.';
@@ -158,7 +164,6 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
         } else if (event.error === 'aborted') {
           errorMessage = 'Speech recognition was cancelled.';
         }
-        
         setFeedback({
           type: 'error',
           message: errorMessage,
@@ -172,20 +177,26 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
       };
       
       setRecognition(recognitionInstance);
-      
+
       // Cleanup function
       return () => {
-        if (recognitionInstance) {
-          try {
-            recognitionInstance.stop();
-            recognitionInstance.abort();
-          } catch (error) {
-            console.log('Error during speech recognition cleanup:', error);
-          }
+        try {
+          recognitionInstance.stop();
+          recognitionInstance.abort();
+        } catch (error) {
+          console.log('Error during speech recognition cleanup:', error);
         }
       };
     }
   }, []);
+
+  // Handle language changes
+  useEffect(() => {
+    if (recognition) {
+      recognition.lang = langMap[language] || 'en-US';
+      console.log(`[Speech] Language updated to: ${recognition.lang}`);
+    }
+  }, [language, recognition]);
 
   // Load user data from Firebase
   useEffect(() => {
@@ -231,19 +242,16 @@ const Game = ({ onLevelComplete, onScoreUpdate }) => {
     loadUserData();
   }, [userId]);
 
-  // Update FSM when level changes
+  // Update feedback and user data when level changes
   useEffect(() => {
-    // No-op for Python backend; left for potential fallback
-    setFsm(null);
     setFeedback({
       type: 'info',
       message: t('levelStart', { level: currentLevel }),
       suggestions: []
     });
 
-    // Use the correct updateUserLevel function (setDoc with merge)
+    // Update user level in database
     updateUserLevel(currentLevel, score, gameStats.successfulCommands);
-    // Remove the inner updateUserLevel function that used updateDoc!
   }, [currentLevel, userId, score, gameStats.successfulCommands]);
 
   // Fetch level vocabulary from Python backend when level changes
