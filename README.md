@@ -1,144 +1,202 @@
-# Natural Language-Guided Sketching (React + FastAPI)
+# 🧠 Natural Language-Guided Sketching Through Modular Command Interpretation
 
-An educational drawing game: type commands like "draw a red circle" and watch shapes appear. Parsing is handled by a Python FastAPI backend (FSM + grammar + rule engine). The React frontend handles UI, i18n, and rendering. User progress is optionally persisted with Firebase Firestore.
+An **educational, multilingual drawing platform** that transforms natural language (typed or spoken) into visual sketches.
+Built with **React** (frontend) and **FastAPI** (backend), the system uses **Finite State Machines (FSM)**, **Regular Grammar-based parsing**, and a **rule engine** with Levenshtein distance to interpret and validate drawing commands like:
 
-## Recent Updates & Fixes
+> “draw a red circle” → 🟠
 
-### Speech Recognition & Translation Updates (September 2025)
-- 🎤 Added multilingual speech recognition support
-  - Native language support for English, Tamil, Hindi, and Malayalam
-  - Real-time language switching capability
-  - Improved speech-to-text accuracy
-  - Debug logging for speech recognition events
-- 🔄 Enhanced Translation System
-  - Integrated Groq API for accurate translations
-  - Optimized translation pipeline
-  - Improved handling of regional language variations
-- 🎯 Speech Recognition Improvements
-  - Fixed language persistence issues
-  - Added proper cleanup on component unmount
-  - Enhanced error handling for speech recognition
-  - Added detailed debug logging
+This project was developed as part of the **Formal Language and Automata (FLA)** curriculum to demonstrate real-world applications of automata theory in human–computer interaction.
 
-### Previous Updates
-- Fixed level progression system
-  - Properly gated commands by level (e.g., 'create' moved to level 2)
-  - Updated level guide display to accurately show available commands
-  - Improved level vocabulary management in backend
-- Enhanced color handling
-  - Added support for compound colors (e.g., "light green", "dark blue")
-  - Fixed color hex value generation for compound colors
-  - Improved color normalization in parsing
-- UI Improvements
-  - Enhanced ParsedView component to show command breakdown clearly
-  - Fixed command suggestion display and filtering
-  - Improved feedback messages for invalid commands
-  - Added proper error handling for backend communication
+---
 
-## Recent additions
+## 🎯 Core Concept
 
-- Level progression (unlock vocabulary by level)
-- Scoreboard, streaks, and badges
-- Command history (last 10 commands persisted per user)
-- Rule engine that analyzes commands and provides context-aware hints and suggestions
-- Unified `FeedbackBox` UI to surface analyzer output
- - Non-overlapping canvas placement for shapes (grid-based)
- - UI i18n (English, Tamil, Hindi, Malayalam) with a language selector
- - Training completion at Level 5 with a unique confetti celebration and modal
- - Parsed View panel showing Original → Translated → Normalized → Parsed
+The system defines a **formal language of drawing commands** — each command must follow specific grammar rules validated by a **Finite State Machine** (FSM).
+Commands outside this language (e.g., incorrect word order, unsupported tokens) are rejected with **rule-based feedback** and **error suggestions**.
 
-## Important files
+It bridges theory and application by integrating:
 
-Backend (Python):
-- `backend/app/grammar.py` — Vocabulary lists and `LEVEL_VOCABULARY`, `COMMON_MISTAKES`, and helpers.
-- `backend/app/fsm.py` — FSM implementation that tokenizes and validates commands. Returns `parsedCommand`, `errors`, `suggestions`, and `canDraw`.
-- `backend/app/rule_engine.py` — Analyzer: contextual hints (common mistake corrections, level hints, similar-word suggestions, next-step tips).
-- `backend/app/main.py` — FastAPI entrypoint. Endpoints: `POST /parse`, `POST /analyze`, `GET /vocab`.
-- `backend/requirements.txt` — Backend dependencies.
+* **Formal Language Theory (Regular Grammar)**
+* **Finite Automata**
+* **Lexical Tokenization & Normalization**
+* **Edit Distance (Levenshtein Distance)**
+* **Speech Recognition & Translation**
 
-Frontend (React):
-- `src/services/backendApi.js` — Client to call FastAPI endpoints.
-- `src/pages/Game.jsx` — Main page; calls backend for parsing/analyzing; handles scoring, level tracker, scoreboard, badges, history.
-- `src/components/CanvasArea.jsx` — Canvas rendering with non-overlapping grid placement of shapes.
-- `src/components/FeedbackBox.jsx` — Feedback UI component.
-- `src/i18n.js` and `public/locales/**` — UI internationalization.
+---
 
-## Quick local test flow
+## 🧩 System Architecture
 
-1. Start the backend (FastAPI):
-```powershell
+**Frontend (React.js)**
+
+* 🎨 Canvas-based renderer for drawing geometric primitives
+* 🎤 Speech recognition via **Web Speech API** (supports English, Tamil, Hindi, Malayalam)
+* 🌐 Translation pipeline (Groq/Azure/Mock)
+* ⚙️ Level progression, scoring, streaks, and achievement badges
+* 💬 Feedback and command history panel
+* 🔠 i18n via `react-i18next`
+
+**Backend (FastAPI + Python)**
+
+* `grammar.py` — Defines **regular grammar** and level-wise vocabulary
+* `fsm.py` — Implements the **Finite State Machine** for command validation
+* `rule_engine.py` — Applies **Levenshtein Distance** for fuzzy corrections and level hints
+* `main.py` — API endpoints: `/parse`, `/analyze`, `/vocab`
+* Uses strict **LEVEL_VOCABULARY** to gate learning progression
+
+**Database (Firebase Firestore)**
+
+* Stores user progress, scores, and history
+* Configured with secure read/write rules after test-mode expiry
+
+---
+
+## 🧠 Key FLA Concepts Applied
+
+| Concept                        | Role in Project                       | Example                                      |            |
+| ------------------------------ | ------------------------------------- | -------------------------------------------- | ---------- |
+| **Finite State Machine (FSM)** | Validates command structure           | START → COMMAND → COLOR → SHAPE → END        |            |
+| **Regular Grammar (Type-3)**   | Defines valid command sequences       | `COMMAND → draw                              | make` etc. |
+| **Tokenization**               | Splits text into grammar symbols      | “draw a red circle” → [draw][a][red][circle] |            |
+| **Normalization**              | Standardizes input                    | “Draw a Red Circle!” → “draw a red circle”   |            |
+| **Parser**                     | Converts tokens to structured objects | `{action: draw, color: red, shape: circle}`  |            |
+| **Levenshtein Distance**       | Suggests corrections for typos        | “drae” → “draw” (distance = 1)               |            |
+| **Language Acceptance**        | Checks if input ∈ defined language    | FSM accepts only valid strings               |            |
+
+> **Chomsky Hierarchy Relation:**
+> The project implements a **Type-3 Regular Grammar**, recognized by a **Deterministic Finite Automaton (DFA)**.
+> Future extensions may evolve toward **Type-2 Context-Free Grammar** for hierarchical commands (e.g., “draw a circle inside a square”).
+
+---
+
+## 🔊 Voice Command Processing
+
+The system uses the **Web Speech API** for in-browser voice recognition:
+
+1. Captures user speech input.
+2. Transcribes it into text (`recognition.onresult` event).
+3. Normalizes and translates it to English.
+4. Sends to FastAPI `/parse` endpoint for FSM validation.
+
+This allows voice-driven drawing in multiple Indian languages, seamlessly integrated with the grammar engine.
+
+---
+
+## 🚀 Quick Setup & Local Run
+
+### 1️⃣ Backend (FastAPI)
+
+```bash
 cd backend
 python -m venv .venv
-..\.venv\Scripts\Activate.ps1
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-2. Start the frontend:
-```powershell
+### 2️⃣ Frontend (React)
+
+```bash
+npm install
 npm start
 ```
 
-3. Open http://localhost:3000 in your browser (or the port shown in the terminal).
+Visit: [http://localhost:3000](http://localhost:3000)
 
-If you hit a peer dependency error installing packages (react-scripts vs typescript), use this:
-```powershell
-npm install --legacy-peer-deps
-```
+---
 
-3. Test scenarios:
-	- Valid command: `draw a red circle` — should draw the shape and show success feedback.
-	- Missing article: `draw circle` — should appear as a common-mistake and suggest `draw a circle`.
-	- Higher-level token: while on level 1, try `triangle` (introduced at later levels) — feedback should tell which level unlocks it.
-	- Malformed commands: expect FSM error messages and rule-engine suggestions.
-	- Check Command History: the right panel shows last 10 commands with accepted/rejected and parsed results.
-	- Level progression: after 5 successful commands (default), LevelTracker should allow leveling up and unlocking new vocab.
-	- Level cap & celebration: when you reach Level 5 and meet the success threshold, leveling stops and a “Training Complete” modal appears with a confetti blast.
+## 🧠 Test Scenarios
 
-## Parsing architecture (Python)
+| Scenario             | Example                        | Expected Result                     |
+| -------------------- | ------------------------------ | ----------------------------------- |
+| Valid Command        | “draw a red circle”            | Red circle drawn                    |
+| Missing Article      | “draw circle”                  | Suggestion: “draw a circle”         |
+| Out-of-Level Token   | “draw a triangle” (at level 1) | Hint: “triangle” unlocks at Level 2 |
+| Invalid Structure    | “red draw circle”              | FSM rejects with error feedback     |
+| Multilingual Command | “சிவப்பு வட்டம் வரை” (Tamil)   | Translated and drawn correctly      |
 
-- The FSM and rule engine run in the backend. `Game.jsx` sends the raw command and current level to FastAPI.
-- `grammar.get_level_vocabulary` is strict per-level (no merge with global), preventing out-of-level words.
-- `rule_engine` uses Levenshtein-based suggestions and level gating hints.
+---
 
-## Notes & next steps
+## 🌍 Internationalization (i18n)
 
-- Consider adding Python unit tests for `validate_command` and `analyze_command`.
-- A UI health indicator for backend availability is included in the Game page.
-- Frontend CRA boilerplate tests have been disabled to avoid jsdom canvas issues.
+* Supports **English**, **Tamil**, **Hindi**, and **Malayalam**
+* Commands translated using Groq/Azure LLM APIs (mock fallback available)
+* UI text managed via `react-i18next` and locale JSON files
 
-## Internationalization & Translation
+---
 
-The app supports UI localization via react-i18next and pre-parse command translation. Non-English commands are translated to English, normalized, and then parsed by the backend.
+## 🧮 Parsing Pipeline
 
-### Translation providers
+1. **Input (Typed/Spoken)**
+2. **Translation (if non-English)**
+3. **Normalization**
+4. **Tokenization**
+5. **FSM Validation (Grammar Check)**
+6. **Rule Engine Feedback (Levenshtein suggestions)**
+7. **ParsedCommand → Canvas Draw**
 
-The translation service is environment-driven and supports:
+---
 
-1. Proxy (recommended): set `REACT_APP_TRANSLATOR_PROXY_URL` to your backend endpoint that securely calls Azure Translator or an LLM.
-2. Azure Translator (dev only): set `REACT_APP_TRANSLATOR_PROVIDER=azure` and provide `REACT_APP_AZURE_TRANSLATOR_KEY`, `REACT_APP_AZURE_TRANSLATOR_REGION` (and optionally `REACT_APP_AZURE_TRANSLATOR_ENDPOINT`).
-3. LLM (Groq/OpenAI-compatible): set `REACT_APP_TRANSLATOR_PROVIDER=groq` (or `llm`/`openai`) and configure:
-	- `REACT_APP_LLM_TRANSLATOR_BASE_URL` (Groq default: `https://api.groq.com/openai/v1`)
-	- `REACT_APP_LLM_TRANSLATOR_API_KEY`
-	- `REACT_APP_LLM_TRANSLATOR_MODEL` (e.g., `llama-3.1-8b-instant`)
-4. Mock fallback: tiny dictionary fallback and passthrough.
+## 🧱 File Overview
 
-Environment variables are read from `.env.local` (not committed). Never commit real API keys.
+### Backend
 
-### Normalization
+* `grammar.py` — Grammar rules, level vocabulary, mistakes
+* `fsm.py` — FSM logic, validation, parsing
+* `rule_engine.py` — Hints, fuzzy matching (edit distance)
+* `main.py` — FastAPI endpoints
+* `requirements.txt` — Python dependencies
 
-After translation, the command is normalized to match the grammar vocabulary (e.g., ellipse→oval, crimson→red, tiny→small). Extend `src/services/normalizeService.js` as needed.
+### Frontend
 
-## Cleaning and removed files
+* `Game.jsx` — Core gameplay logic (scoring, feedback, levels)
+* `CanvasArea.jsx` — Shape rendering and animation
+* `FeedbackBox.jsx` — Suggestion and validation output
+* `backendApi.js` — Handles API calls to FastAPI
+* `i18n.js` — Language configuration
 
-- Deprecated JS FSM modules removed: `src/fsm/*` are no longer used (Python backend is authoritative).
-- CRA boilerplate trimmed: tests disabled, web vitals reporting removed from bootstrap.
-- Unused PWA assets/metadata minimized from `public/index.html`.
+---
 
-## UI polish & animations
+## 🧰 Technologies Used
 
-- Success feedback glow and error shake animations tied to command results.
-- Progress bar shine and pulse when ready to level up.
-- Training completion modal includes a subtle shimmer and a confetti celebration (via `canvas-confetti`).
+| Layer          | Technology                                        |
+| -------------- | ------------------------------------------------- |
+| Frontend       | React, TailwindCSS, react-i18next, Web Speech API |
+| Backend        | Python, FastAPI                                   |
+| Database       | Firebase Firestore                                |
+| Language Tools | Groq/Azure Translation APIs                       |
+| FLA Core       | FSM, Regular Grammar, Levenshtein Distance        |
 
-Note: Custom animation styles are in `src/styles/animations.css` and shimmer styles in `src/styles/main.css`, which are imported by `src/index.css`.
+---
+
+## 🧩 Future Enhancements
+
+* Add **Context-Free Grammar (CFG)** support for hierarchical commands
+* Introduce **Pushdown Automaton** for spatial relation parsing (“inside”, “above”)
+* Real user authentication in Firebase
+* Expand translation coverage with on-device caching
+* Voice feedback synthesis (Text-to-Speech)
+* Offline mode for classrooms
+
+---
+
+## 📘 Academic Note
+
+This project was built for the **Formal Language and Automata (22AIE302)** course to demonstrate how classical computational models (FSM, grammar, edit distance) can be applied to modern AI/UX systems.
+It blends **automata theory** with **natural language interaction**, showing how deterministic models can enable intelligent, interpretable command processing.
+
+---
+
+## 💬 Acknowledgements
+
+Developed by
+**Venkatram KS, Sanggit Saaran K C S, Vishal Seshadri B, Surya H A**
+under the guidance of **Dr. Chitra P**,
+*Amrita School of Artificial Intelligence, Coimbatore.*
+
+---
+
+## 🧾 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
